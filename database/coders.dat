@@ -1,0 +1,13 @@
+BARCODE,QR Code Scanner
+BARCODE,Data Matrix Reader  
+BARCODE,UPC Scanner
+BARCODE,EAN-13 Reader
+RFID,RFID Tag Reader
+RFID,NFC Scanner
+RFID,Proximity Card
+SENSOR,Temperature Sensor
+SENSOR,Pressure Sensor
+SENSOR,Motion Detector
+WIRELESS,Bluetooth Module
+WIRELESS,WiFi Adapter
+WIRELESS,Zigbee Controller
