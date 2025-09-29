@@ -637,6 +637,14 @@ public class RulerMark extends Mark {
     
     @Override
     public void resizeTo(int newWidth, int newHeight) {
+        // Check lock size flag before allowing resize
+        if (lockSize && RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("RulerMark resizeTo blocked: Size is locked");
+            }
+            return;
+        }
+        
         if (isVertical) {
             this.height = Math.max(50, newWidth);  // Swap for vertical
             this.width = Math.max(20, newHeight);

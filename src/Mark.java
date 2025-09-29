@@ -45,8 +45,15 @@ public abstract class Mark implements Serializable {
                py >= (y - CLICK_TOLERANCE) && py <= (y + height + CLICK_TOLERANCE);
     }
     
-    // Soft coding: Enhanced resize handle detection
+    // Soft coding: Enhanced resize handle detection with Lock Size support
     public boolean overResizeHandle(int px, int py) {
+        // Soft coding: Hide resize handles if size is locked
+        if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+            RugrelDropdownConfig.BLOCK_RESIZE_HANDLES_WHEN_LOCKED && 
+            lockSize) {
+            return false; // No resize handle interaction when size is locked
+        }
+        
         int handleX = x + width - HANDLE_SIZE;
         int handleY = y + height - HANDLE_SIZE;
         return px >= (handleX - RESIZE_BORDER) && px <= (x + width + RESIZE_BORDER) &&
@@ -103,15 +110,44 @@ public abstract class Mark implements Serializable {
         dragStarted = false;
     }
     
-    // Soft coding: Enhanced resize start with validation
+    // Soft coding: Enhanced resize start with validation and Lock Size support
     public void startResize() {
         if (!canResize) return;
+        
+        // Soft coding: Check Lock Size functionality and per-mark lock state
+        if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+            RugrelDropdownConfig.ENABLE_INTELLIGENT_LOCK_SIZE) {
+            
+            // Prevent resize if this mark's size is locked
+            if (lockSize && RugrelDropdownConfig.PREVENT_RESIZE_OPERATIONS_WHEN_LOCKED) {
+                if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                    // Optional: Could show feedback here but keeping it lightweight
+                    System.out.println("Resize blocked: Mark size is locked");
+                }
+                return;
+            }
+        }
+        
         resizing = true;
     }
     
-    // Soft coding: Enhanced resize with minimum size constraints
+    // Soft coding: Enhanced resize with minimum size constraints and Lock Size support
     public void resizeTo(int mx, int my) {
         if (!resizing || !canResize) return;
+        
+        // Soft coding: Double-check Lock Size state during resize operation
+        if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+            RugrelDropdownConfig.ENABLE_INTELLIGENT_LOCK_SIZE) {
+            
+            // Stop resize if size becomes locked during operation
+            if (lockSize && RugrelDropdownConfig.PREVENT_RESIZE_OPERATIONS_WHEN_LOCKED) {
+                if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                    System.out.println("Resize operation cancelled: Mark size is now locked");
+                }
+                stopResize();
+                return;
+            }
+        }
         
         int newWidth = Math.max(MIN_WIDTH, mx - x);
         int newHeight = Math.max(MIN_HEIGHT, my - y);

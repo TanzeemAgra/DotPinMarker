@@ -118,12 +118,57 @@ public class MarkTabConfig {
         }
     }
     
-    public static final ActionButton[] ACTION_BUTTONS = {
-        new ActionButton("Clear Trans", true, false, () -> System.out.println("🔄 Clear Transform")),
-        new ActionButton("Mirror", true, false, () -> System.out.println("🪞 Mirror action")),
-        new ActionButton("Lock Size", true, false, () -> System.out.println("🔒 Lock Size")),
-        new ActionButton("Disable Print", true, false, () -> System.out.println("🚫 Disable Print"))
-    };
+    public static final ActionButton[] ACTION_BUTTONS = getFilteredActionButtons();
+    
+    // Filtered action buttons based on comprehensive soft coding configuration
+    private static ActionButton[] getFilteredActionButtons() {
+        // Master duplicate prevention check
+        if (RugrelDropdownConfig.PREVENT_DUPLICATE_PROPERTY_ICONS || 
+            RugrelDropdownConfig.ELIMINATE_ALL_DUPLICATE_SOURCES ||
+            RugrelDropdownConfig.ENFORCE_BOTTOM_STRIP_ONLY) {
+            
+            if (RugrelDropdownConfig.LOG_BLOCKED_DUPLICATE_ATTEMPTS) {
+                System.out.println("🚫 BLOCKED: Mark Tab property button creation prevented by soft coding");
+                System.out.println("   Reason: Duplicate prevention enabled - properties only in bottom strip");
+            }
+            return new ActionButton[0];
+        }
+        
+        // Specific component blocking checks
+        if (RugrelDropdownConfig.DISABLE_MARK_TAB_PROPERTY_BUTTONS || 
+            RugrelDropdownConfig.BLOCK_MARK_TAB_PROPERTY_CREATION ||
+            !RugrelDropdownConfig.SHOW_PROPERTIES_IN_MARK_TAB) {
+            
+            if (RugrelDropdownConfig.LOG_BLOCKED_DUPLICATE_ATTEMPTS) {
+                System.out.println("🚫 BLOCKED: Mark Tab specific property creation disabled");
+            }
+            return new ActionButton[0];
+        }
+        
+        // Individual property duplicate elimination checks
+        if (RugrelDropdownConfig.ELIMINATE_CLEAR_TRANS_DUPLICATES ||
+            RugrelDropdownConfig.ELIMINATE_MIRROR_DUPLICATES ||
+            RugrelDropdownConfig.ELIMINATE_LOCK_SIZE_DUPLICATES ||
+            RugrelDropdownConfig.ELIMINATE_DISABLE_PRINT_DUPLICATES) {
+            
+            if (RugrelDropdownConfig.LOG_BLOCKED_DUPLICATE_ATTEMPTS) {
+                System.out.println("🚫 BLOCKED: Individual property duplicates eliminated");
+            }
+            return new ActionButton[0];
+        }
+        
+        // Original buttons (only if ALL duplicate prevention is disabled)
+        if (RugrelDropdownConfig.LOG_PROPERTY_ICON_CREATION) {
+            System.out.println("⚠️ WARNING: Creating property buttons in Mark Tab (duplicates allowed)");
+        }
+        
+        return new ActionButton[] {
+            new ActionButton("Clear Trans", true, false, () -> handleClearTransform()),
+            new ActionButton("Mirror", true, false, () -> handleMirror()),
+            new ActionButton("Lock Size", true, false, () -> handleLockSize()),
+            new ActionButton("Disable Print", true, false, () -> handleDisablePrint())
+        };
+    }
     
     // ==================== CLIPBOARD ACTION HANDLERS (SOFT CODED) ====================
     
@@ -463,7 +508,143 @@ public class MarkTabConfig {
         
         System.out.println("⌨️ Keyboard shortcuts setup: Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z, Delete");
     }
-
+    
+    // ==================== PROPERTY FUNCTIONALITY HANDLERS (SOFT CODED) ====================
+    
+    /**
+     * Clear Transform Functionality Handler (Intelligent Deletion)
+     */
+    public static void handleClearTransform() {
+        if (!RugrelDropdownConfig.ENABLE_CLEAR_TRANS_FUNCTIONALITY) {
+            System.out.println("🚫 Clear Transform functionality is disabled via soft coding");
+            return;
+        }
+        
+        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+            System.out.println("🧹 Clear Transform Action - Intelligent content clearing...");
+        }
+        
+        try {
+            DrawingCanvas canvas = getCurrentDrawingCanvas();
+            if (canvas != null && RugrelDropdownConfig.CONNECT_PROPERTIES_TO_CANVAS) {
+                // Use the new intelligent clearing method
+                canvas.clearTransSelected();
+                
+                if (RugrelDropdownConfig.SHOW_PROPERTY_ACTION_FEEDBACK) {
+                    System.out.println("✅ Clear Transform (intelligent deletion) completed successfully");
+                }
+            } else {
+                System.err.println("❌ No drawing canvas found or connection disabled");
+                
+                // Show helpful message when canvas is not available
+                if (RugrelDropdownConfig.SHOW_CLEAR_FEEDBACK) {
+                    javax.swing.JOptionPane.showMessageDialog(null, 
+                        "Clear Transform is not available at the moment.\n" +
+                        "Please ensure the drawing canvas is properly loaded.",
+                        "Clear Transform - Not Available", 
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Clear Transform failed: " + e.getMessage());
+            
+            if (RugrelDropdownConfig.SHOW_CLEAR_FEEDBACK) {
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Clear Transform encountered an error:\n" + e.getMessage() + 
+                    "\n\nPlease try again or check the console for details.",
+                    "Clear Transform - Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    /**
+     * Mirror Functionality Handler  
+     */
+    public static void handleMirror() {
+        if (!RugrelDropdownConfig.ENABLE_MIRROR_FUNCTIONALITY) {
+            System.out.println("🚫 Mirror functionality is disabled via soft coding");
+            return;
+        }
+        
+        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+            System.out.println("🪞 Mirror Action - Mirroring selected object...");
+        }
+        
+        try {
+            DrawingCanvas canvas = getCurrentDrawingCanvas();
+            if (canvas != null && RugrelDropdownConfig.CONNECT_PROPERTIES_TO_CANVAS) {
+                canvas.mirrorSelected();
+                
+                if (RugrelDropdownConfig.SHOW_PROPERTY_ACTION_FEEDBACK) {
+                    System.out.println("✅ Mirror completed successfully");
+                }
+            } else {
+                System.err.println("❌ No drawing canvas found or connection disabled");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Mirror failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Lock Size Functionality Handler
+     */
+    public static void handleLockSize() {
+        if (!RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY) {
+            System.out.println("🚫 Lock Size functionality is disabled via soft coding");
+            return;
+        }
+        
+        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+            System.out.println("🔒 Lock Size Action - Locking object size...");
+        }
+        
+        try {
+            DrawingCanvas canvas = getCurrentDrawingCanvas();
+            if (canvas != null && RugrelDropdownConfig.CONNECT_PROPERTIES_TO_CANVAS) {
+                canvas.toggleSizeLock();
+                
+                if (RugrelDropdownConfig.SHOW_PROPERTY_ACTION_FEEDBACK) {
+                    System.out.println("✅ Lock Size toggle completed successfully");
+                }
+            } else {
+                System.err.println("❌ No drawing canvas found or connection disabled");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lock Size failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Disable Print Functionality Handler
+     */
+    public static void handleDisablePrint() {
+        if (!RugrelDropdownConfig.ENABLE_DISABLE_PRINT_FUNCTIONALITY) {
+            System.out.println("🚫 Disable Print functionality is disabled via soft coding");
+            return;
+        }
+        
+        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+            System.out.println("🚫 Disable Print Action - Toggling print status...");
+        }
+        
+        try {
+            DrawingCanvas canvas = getCurrentDrawingCanvas();
+            if (canvas != null && RugrelDropdownConfig.CONNECT_PROPERTIES_TO_CANVAS) {
+                canvas.togglePrintDisabled();
+                
+                if (RugrelDropdownConfig.SHOW_PROPERTY_ACTION_FEEDBACK) {
+                    System.out.println("✅ Disable Print toggle completed successfully");
+                }
+            } else {
+                System.err.println("❌ No drawing canvas found or connection disabled");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Disable Print failed: " + e.getMessage());
+        }
+    }
+    
     /**
      * Print configuration summary
      */

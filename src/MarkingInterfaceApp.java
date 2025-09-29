@@ -339,16 +339,17 @@ public class MarkingInterfaceApp {
         tabbedPane.setToolTipTextAt(tabbedPane.getTabCount() - 1, tooltip);
     }
     
-    // Create Mark tab panel with ThorX6 Horizontal Layout (exact ThorX6 copy)
+    // Create Mark tab panel with Simplified ThorX6 System (professional workflow)
     private static JPanel createMarkTabPanel(DrawingCanvas drawingCanvas) {
-        System.out.println("🎯 Creating ThorX6 Horizontal Mark Tab (exact ThorX6 software copy)...");
+        System.out.println("🎯 Creating Simplified ThorX6 Mark System (professional CAD workflow)...");
         
-        // Create ThorX6-style horizontal Mark tab like real ThorX6 software
-        ThorX6HorizontalMarkTab thorX6MarkTab = new ThorX6HorizontalMarkTab(drawingCanvas);
+        // Create simplified mark system that works like real ThorX6 software
+        // Pass the DrawingCanvas for integration with existing marks
+        SimpleThorX6MarkSystem simplifiedMarkSystem = new SimpleThorX6MarkSystem(drawingCanvas);
         
-        return thorX6MarkTab;
+        return simplifiedMarkSystem;
         
-        // Layout: ThorX6 panel contains toolbar, properties, and status
+        // Layout: Simple professional interface - Add Mark → Select Type → Click to Place
     }    // Create ThorX6-styled canvas area
     private static JPanel createThorX6CanvasArea(DrawingCanvas drawingCanvas) {
         JPanel canvasArea = new JPanel(new BorderLayout());

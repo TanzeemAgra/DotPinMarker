@@ -270,6 +270,14 @@ public class GraphMark extends Mark {
     // Start resize and remember which type
     @Override
     public void startResize() {
+        // Check lock size flag before allowing resize
+        if (lockSize && RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("GraphMark startResize blocked: Size is locked");
+            }
+            return;
+        }
+        
         resizing = true;
         // activeResize will be set in startResize(px, py)
     }
@@ -283,6 +291,14 @@ public class GraphMark extends Mark {
     // Enhanced resize based on handle type
     @Override
     public void resizeTo(int mx, int my) {
+        // Check lock size flag before allowing resize
+        if (lockSize && RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("GraphMark resizeTo blocked: Size is locked");
+            }
+            return;
+        }
+        
         if (resizing) {
             switch (activeResize) {
                 case CORNER:

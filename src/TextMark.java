@@ -33,11 +33,20 @@ public class TextMark extends Mark {
     private float originalFontSize;
     private double originalCharacterWidth;
     
-    // Font size and spacing limits for safe resizing
-    private static final float MIN_FONT_SIZE = 6.0f;
-    private static final float MAX_FONT_SIZE = 72.0f;
-    private static final double MIN_CHARACTER_WIDTH = 0.5;
-    private static final double MAX_CHARACTER_WIDTH = 3.0;
+    // Font size and spacing limits for safe resizing (using soft coding)
+    private static final float MIN_FONT_SIZE = RugrelDropdownConfig.TEXTMARK_MIN_FONT_SIZE;
+    private static final float MAX_FONT_SIZE = RugrelDropdownConfig.TEXTMARK_MAX_FONT_SIZE;
+    private static final double MIN_CHARACTER_WIDTH = RugrelDropdownConfig.TEXTMARK_MIN_CHARACTER_WIDTH;
+    private static final double MAX_CHARACTER_WIDTH = RugrelDropdownConfig.TEXTMARK_MAX_CHARACTER_WIDTH;
+    
+    // ==================== POSITION LOCKING SYSTEM (SOFT CODED) ====================
+    
+    // Position locking state (prevents movement after placement)
+    private boolean positionLocked = false;                     // Main position lock state
+    private int lockedTopLeftX = -1;                           // Locked top-left X coordinate
+    private int lockedTopLeftY = -1;                           // Locked top-left Y coordinate
+    private long positionLockTime = 0;                         // Time when position was locked
+    private String lockReason = "PLACEMENT";                   // Reason for position lock
 
     public TextMark(int x, int y) {
         super(x, y);
@@ -157,6 +166,11 @@ public class TextMark extends Mark {
             g.setStroke(new BasicStroke(1));
         }
         g.drawRect(x, y, width, height);
+        
+        // Draw position lock indicators (if position is locked)
+        if (isPositionLocked() && RugrelDropdownConfig.SHOW_POSITION_LOCK_INDICATOR) {
+            drawPositionLockIndicators(g);
+        }
 
         // Draw 8 directional resize handles - only show if selected
         if (isSelected) {
@@ -202,7 +216,7 @@ public class TextMark extends Mark {
         g.drawString("◄", spacingLeftX - 3, midY + 2);
         g.drawString("►", spacingRightX - 3, midY + 2);
         
-        // 3. CORNER COMBO CONTROLS (Orange Diamonds) - Combined font + spacing
+        // 3. CORNER COMBO CONTROLS (Orange Diamonds) - Combined font + spacing WITH ANCHOR LOCKING
         int topLeftX = x - 5;
         int topLeftY = y - 5;
         int topRightX = x + width + 5;
@@ -212,6 +226,7 @@ public class TextMark extends Mark {
         int bottomRightX = x + width + 5;
         int bottomRightY = y + height + 5;
         
+        // Draw corner controls (orange diamonds)
         g.setColor(new Color(255, 150, 0));  // Orange for combined controls
         drawTextDiamond(g, topLeftX, topLeftY, 6);
         drawTextDiamond(g, topRightX, topRightY, 6);
@@ -237,13 +252,83 @@ public class TextMark extends Mark {
         g.fillPolygon(xPoints, yPoints, 4);
     }
     
+    /**
+     * Draw position lock visual indicators
+     */
+    private void drawPositionLockIndicators(Graphics2D g) {
+        // Save original stroke and color
+        Stroke originalStroke = g.getStroke();
+        Color originalColor = g.getColor();
+        
+        if (RugrelDropdownConfig.HIGHLIGHT_LOCKED_POSITION) {
+            // Draw special border highlighting the locked position
+            g.setColor(new Color(255, 0, 0, 150));  // Semi-transparent red
+            g.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 
+                                      1.0f, new float[]{8, 4}, 0));
+            g.drawRect(x - 2, y - 2, width + 4, height + 4);
+        }
+        
+        if (RugrelDropdownConfig.USE_LOCK_ICON_OVERLAY && RugrelDropdownConfig.LOCK_TOP_LEFT_CORNER) {
+            // Draw lock icon in the top-left corner
+            int lockSize = 16;
+            int lockX = x - 8;  // Position slightly outside top-left corner
+            int lockY = y - 8;
+            
+            // Draw lock background
+            g.setColor(new Color(255, 255, 255, 200));
+            g.fillRoundRect(lockX - 2, lockY - 2, lockSize + 4, lockSize + 4, 4, 4);
+            
+            // Draw lock icon
+            g.setColor(new Color(255, 0, 0));  // Red lock
+            g.setStroke(new BasicStroke(2.0f));
+            
+            // Lock body (rectangle)
+            g.fillRect(lockX + 4, lockY + 8, 8, 6);
+            
+            // Lock shackle (arc)
+            g.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.drawArc(lockX + 5, lockY + 2, 6, 8, 0, 180);
+            
+            // Lock indicator text
+            if (RugrelDropdownConfig.DEBUG_POSITION_LOCKING) {
+                g.setColor(Color.BLACK);
+                g.setFont(new Font("Arial", Font.BOLD, 8));
+                g.drawString("LOCKED", lockX - 5, lockY + lockSize + 12);
+            }
+        }
+        
+        // Draw lock status tooltip near object
+        if (RugrelDropdownConfig.SHOW_LOCK_STATUS_IN_TOOLTIP) {
+            g.setColor(new Color(0, 0, 0, 180));
+            g.setFont(new Font("Arial", Font.PLAIN, 10));
+            String lockInfo = getPositionLockInfo();
+            FontMetrics fm = g.getFontMetrics();
+            int textWidth = fm.stringWidth(lockInfo);
+            int tooltipX = x + width + 10;
+            int tooltipY = y + 15;
+            
+            // Draw tooltip background
+            g.setColor(new Color(255, 255, 200, 200));
+            g.fillRoundRect(tooltipX - 3, tooltipY - 12, textWidth + 6, 16, 4, 4);
+            
+            // Draw tooltip text
+            g.setColor(Color.BLACK);
+            g.drawString(lockInfo, tooltipX, tooltipY);
+        }
+        
+        // Restore original graphics settings
+        g.setStroke(originalStroke);
+        g.setColor(originalColor);
+    }
+    
+
+    
     // Soft-coded intelligent handle detection system with enhanced geometry and debug support
     public TextResizeHandle getTextResizeHandle(int px, int py) {
-        // Soft-coded configuration parameters for easy tuning
-        final int FONTSIZE_HIT_RADIUS = 12;     // Larger for font size controls
-        final int SPACING_HIT_RADIUS = 10;      // Good for spacing controls
-        final int ALIGNMENT_HIT_RADIUS = 8;     // Smaller for precision controls
-        final int CORNER_HIT_RADIUS = 10;       // Medium for combined controls
+        // Use soft-coded configuration parameters for handle detection
+        final int FONTSIZE_HIT_RADIUS = RugrelDropdownConfig.TEXTMARK_FONT_HANDLE_RADIUS;
+        final int SPACING_HIT_RADIUS = RugrelDropdownConfig.TEXTMARK_SPACING_HANDLE_RADIUS;
+        final int CORNER_HIT_RADIUS = RugrelDropdownConfig.TEXTMARK_CORNER_HANDLE_RADIUS;
         
         // Enhanced geometry calculations for better handle positioning
         int centerX = x + width / 2;
@@ -251,71 +336,109 @@ public class TextMark extends Mark {
         int midY = y + height / 2;
         
         // Priority 1: Font Size Control Handles (TOP/BOTTOM) - Most Important
-        int fontTopX = centerX;
-        int fontTopY = y - 8;  // Extend outside for easier access
-        int fontBottomX = centerX;
-        int fontBottomY = y + height + 8;  // Extend outside for easier access
-        
-        System.out.println("📝 Font Size UP handle at (" + fontTopX + "," + fontTopY + ") - radius:" + FONTSIZE_HIT_RADIUS);
-        if (isInTextHandle(px, py, fontTopX, fontTopY, FONTSIZE_HIT_RADIUS)) {
-            System.out.println("✅ FONT SIZE UP detected!");
-            return TextResizeHandle.TOP;
-        }
-        
-        System.out.println("📝 Font Size DOWN handle at (" + fontBottomX + "," + fontBottomY + ") - radius:" + FONTSIZE_HIT_RADIUS);
-        if (isInTextHandle(px, py, fontBottomX, fontBottomY, FONTSIZE_HIT_RADIUS)) {
-            System.out.println("✅ FONT SIZE DOWN detected!");
-            return TextResizeHandle.BOTTOM;
+        if (RugrelDropdownConfig.ENABLE_TEXTMARK_FONT_SIZE_HANDLES) {
+            int fontTopX = centerX;
+            int fontTopY = y - 8;  // Extend outside for easier access
+            int fontBottomX = centerX;
+            int fontBottomY = y + height + 8;  // Extend outside for easier access
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("📝 Font Size UP handle at (" + fontTopX + "," + fontTopY + ") - radius:" + FONTSIZE_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, fontTopX, fontTopY, FONTSIZE_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ FONT SIZE UP detected!");
+                }
+                return TextResizeHandle.TOP;
+            }
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("📝 Font Size DOWN handle at (" + fontBottomX + "," + fontBottomY + ") - radius:" + FONTSIZE_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, fontBottomX, fontBottomY, FONTSIZE_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ FONT SIZE DOWN detected!");
+                }
+                return TextResizeHandle.BOTTOM;
+            }
         }
         
         // Priority 2: Character Spacing Controls (LEFT/RIGHT) - Essential for text layout
-        int spacingLeftX = x - 8;   // Extend outside bounds for easier access
-        int spacingRightX = x + width + 8;
-        
-        System.out.println("⬅️ Spacing DECREASE handle at (" + spacingLeftX + "," + midY + ") - radius:" + SPACING_HIT_RADIUS);
-        if (isInTextHandle(px, py, spacingLeftX, midY, SPACING_HIT_RADIUS)) {
-            System.out.println("✅ SPACING DECREASE detected!");
-            return TextResizeHandle.LEFT;
-        }
-        
-        System.out.println("➡️ Spacing INCREASE handle at (" + spacingRightX + "," + midY + ") - radius:" + SPACING_HIT_RADIUS);
-        if (isInTextHandle(px, py, spacingRightX, midY, SPACING_HIT_RADIUS)) {
-            System.out.println("✅ SPACING INCREASE detected!");
-            return TextResizeHandle.RIGHT;
+        if (RugrelDropdownConfig.ENABLE_TEXTMARK_SPACING_HANDLES) {
+            int spacingLeftX = x - 8;   // Extend outside bounds for easier access
+            int spacingRightX = x + width + 8;
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("⬅️ Spacing DECREASE handle at (" + spacingLeftX + "," + midY + ") - radius:" + SPACING_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, spacingLeftX, midY, SPACING_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ SPACING DECREASE detected!");
+                }
+                return TextResizeHandle.LEFT;
+            }
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("➡️ Spacing INCREASE handle at (" + spacingRightX + "," + midY + ") - radius:" + SPACING_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, spacingRightX, midY, SPACING_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ SPACING INCREASE detected!");
+                }
+                return TextResizeHandle.RIGHT;
+            }
         }
         
         // Priority 3: Corner Combo Controls (Font + Spacing combined)
-        int topLeftX = x - 5;
-        int topLeftY = y - 5;
-        int topRightX = x + width + 5;
-        int topRightY = y - 5;
-        int bottomLeftX = x - 5;
-        int bottomLeftY = y + height + 5;
-        int bottomRightX = x + width + 5;
-        int bottomRightY = y + height + 5;
-        
-        System.out.println("🔧 Top-Left combo at (" + topLeftX + "," + topLeftY + ") - radius:" + CORNER_HIT_RADIUS);
-        if (isInTextHandle(px, py, topLeftX, topLeftY, CORNER_HIT_RADIUS)) {
-            System.out.println("✅ TOP-LEFT COMBO detected!");
-            return TextResizeHandle.TOP_LEFT;
-        }
-        
-        System.out.println("🔧 Top-Right combo at (" + topRightX + "," + topRightY + ") - radius:" + CORNER_HIT_RADIUS);
-        if (isInTextHandle(px, py, topRightX, topRightY, CORNER_HIT_RADIUS)) {
-            System.out.println("✅ TOP-RIGHT COMBO detected!");
-            return TextResizeHandle.TOP_RIGHT;
-        }
-        
-        System.out.println("🔧 Bottom-Left combo at (" + bottomLeftX + "," + bottomLeftY + ") - radius:" + CORNER_HIT_RADIUS);
-        if (isInTextHandle(px, py, bottomLeftX, bottomLeftY, CORNER_HIT_RADIUS)) {
-            System.out.println("✅ BOTTOM-LEFT COMBO detected!");
-            return TextResizeHandle.BOTTOM_LEFT;
-        }
-        
-        System.out.println("🔧 Bottom-Right combo at (" + bottomRightX + "," + bottomRightY + ") - radius:" + CORNER_HIT_RADIUS);
-        if (isInTextHandle(px, py, bottomRightX, bottomRightY, CORNER_HIT_RADIUS)) {
-            System.out.println("✅ BOTTOM-RIGHT COMBO detected!");
-            return TextResizeHandle.BOTTOM_RIGHT;
+        if (RugrelDropdownConfig.ENABLE_TEXTMARK_DIAGONAL_HANDLES) {
+            int topLeftX = x - 5;
+            int topLeftY = y - 5;
+            int topRightX = x + width + 5;
+            int topRightY = y - 5;
+            int bottomLeftX = x - 5;
+            int bottomLeftY = y + height + 5;
+            int bottomRightX = x + width + 5;
+            int bottomRightY = y + height + 5;
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("🔧 Top-Left combo at (" + topLeftX + "," + topLeftY + ") - radius:" + CORNER_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, topLeftX, topLeftY, CORNER_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ TOP-LEFT COMBO detected!");
+                }
+                return TextResizeHandle.TOP_LEFT;
+            }
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("🔧 Top-Right combo at (" + topRightX + "," + topRightY + ") - radius:" + CORNER_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, topRightX, topRightY, CORNER_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ TOP-RIGHT COMBO detected!");
+                }
+                return TextResizeHandle.TOP_RIGHT;
+            }
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("🔧 Bottom-Left combo at (" + bottomLeftX + "," + bottomLeftY + ") - radius:" + CORNER_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, bottomLeftX, bottomLeftY, CORNER_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ BOTTOM-LEFT COMBO detected!");
+                }
+                return TextResizeHandle.BOTTOM_LEFT;
+            }
+            
+            if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                System.out.println("🔧 Bottom-Right combo at (" + bottomRightX + "," + bottomRightY + ") - radius:" + CORNER_HIT_RADIUS);
+            }
+            if (isInTextHandle(px, py, bottomRightX, bottomRightY, CORNER_HIT_RADIUS)) {
+                if (RugrelDropdownConfig.DEBUG_TEXTMARK_HANDLE_DETECTION) {
+                    System.out.println("✅ BOTTOM-RIGHT COMBO detected!");
+                }
+                return TextResizeHandle.BOTTOM_RIGHT;
+            }
         }
         
         // Debug output disabled to reduce console noise
@@ -333,6 +456,25 @@ public class TextMark extends Mark {
         return Math.abs(px - handleX) <= hitRadius && Math.abs(py - handleY) <= hitRadius;
     }
     
+    // Soft coding: Helper method to determine directional dominance
+    private boolean isHorizontalDominant(int deltaX, int deltaY) {
+        if (!RugrelDropdownConfig.TEXTMARK_USE_DOMINANT_DIRECTION_ONLY) {
+            return false; // If not using dominance, neither direction is dominant
+        }
+        
+        double ratio = RugrelDropdownConfig.TEXTMARK_DIRECTIONAL_DOMINANCE_RATIO;
+        return Math.abs(deltaX) >= Math.abs(deltaY) * ratio;
+    }
+    
+    private boolean isVerticalDominant(int deltaX, int deltaY) {
+        if (!RugrelDropdownConfig.TEXTMARK_USE_DOMINANT_DIRECTION_ONLY) {
+            return false; // If not using dominance, neither direction is dominant
+        }
+        
+        double ratio = RugrelDropdownConfig.TEXTMARK_DIRECTIONAL_DOMINANCE_RATIO;
+        return Math.abs(deltaY) >= Math.abs(deltaX) * ratio;
+    }
+    
     // Default hit detection method (backward compatibility)
     private boolean isInHandle(int px, int py, int handleX, int handleY) {
         return isInTextHandle(px, py, handleX, handleY, HANDLE_SIZE + HANDLE_BORDER + 5);
@@ -341,12 +483,30 @@ public class TextMark extends Mark {
     // Override the base resize methods to use dynamic text resizing
     @Override
     public boolean overResizeHandle(int px, int py) {
+        // Soft coding: Check Lock Size flag first
+        if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+            RugrelDropdownConfig.BLOCK_RESIZE_HANDLES_WHEN_LOCKED && 
+            lockSize) {
+            return false; // No resize handle interaction when size is locked
+        }
         return getTextResizeHandle(px, py) != TextResizeHandle.NONE;
     }
     
     @Override
     public void startResize() {
         if (!getCanResize()) return;
+        
+        // Soft coding: Check Lock Size functionality
+        if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+            RugrelDropdownConfig.ENABLE_INTELLIGENT_LOCK_SIZE && 
+            lockSize && 
+            RugrelDropdownConfig.PREVENT_RESIZE_OPERATIONS_WHEN_LOCKED) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("TextMark resize blocked: Size is locked");
+            }
+            return;
+        }
+        
         dynamicResizing = true;
         originalFontSize = font.getSize();
         originalCharacterWidth = characterWidth;
@@ -354,6 +514,18 @@ public class TextMark extends Mark {
     
     public void startDynamicResize(int startX, int startY, TextResizeHandle handle) {
         if (!getCanResize()) return;
+        
+        // Soft coding: Check Lock Size flag
+        if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+            RugrelDropdownConfig.ENABLE_INTELLIGENT_LOCK_SIZE && 
+            lockSize && 
+            RugrelDropdownConfig.PREVENT_RESIZE_OPERATIONS_WHEN_LOCKED) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("TextMark dynamic resize blocked: Size is locked");
+            }
+            return;
+        }
+        
         activeHandle = handle;
         resizeStartX = startX;
         resizeStartY = startY;
@@ -362,90 +534,150 @@ public class TextMark extends Mark {
         originalCharacterWidth = characterWidth;
     }
     
-    // Enhanced Smart TextMark control system with full multi-directional support
+    // Enhanced Smart TextMark control system with dynamic directional locking
     public void resizeText(int deltaX, int deltaY, TextResizeHandle handle) {
-        System.out.println("📝 TextMark Multi-Directional Resize - Handle: " + handle + ", Delta: (" + deltaX + "," + deltaY + ")");
+        // Check if multi-directional resize is enabled via soft coding
+        if (!RugrelDropdownConfig.ENABLE_TEXTMARK_MULTI_DIRECTIONAL_RESIZE) {
+            if (RugrelDropdownConfig.LOG_TEXTMARK_RESIZE_OPERATIONS) {
+                System.out.println("📝 TextMark multi-directional resize disabled via soft coding");
+            }
+            return;
+        }
         
-        // Soft-coded sensitivity parameters for fine-tuning
-        final double FONTSIZE_SENSITIVITY = 0.5;      // Font size change per pixel
-        final double SPACING_SENSITIVITY = 0.02;      // Character spacing change per pixel
-        final double FINE_FONTSIZE_SENSITIVITY = 0.3; // Fine font size control
-        final double FINE_SPACING_SENSITIVITY = 0.01; // Fine spacing control
+        // DYNAMIC DIRECTIONAL LOCKING TECHNIQUE
+        // Apply strict directional filtering to completely eliminate cross-directional effects
+        int filteredDeltaX = deltaX;
+        int filteredDeltaY = deltaY;
+        
+        // For vertical handles (TOP/BOTTOM), completely zero out horizontal movement
+        if (handle == TextResizeHandle.TOP || handle == TextResizeHandle.BOTTOM) {
+            if (RugrelDropdownConfig.TEXTMARK_VERTICAL_ONLY_FONT_HANDLES) {
+                filteredDeltaX = 0; // Dynamic lock: Force horizontal delta to absolute zero
+            }
+        }
+        
+        // For horizontal handles (LEFT/RIGHT), completely zero out vertical movement
+        if (handle == TextResizeHandle.LEFT || handle == TextResizeHandle.RIGHT) {
+            if (RugrelDropdownConfig.TEXTMARK_HORIZONTAL_ONLY_SPACING_HANDLES) {
+                filteredDeltaY = 0; // Dynamic lock: Force vertical delta to absolute zero
+            }
+        }
+        
+        if (RugrelDropdownConfig.LOG_TEXTMARK_RESIZE_OPERATIONS) {
+            System.out.println("📝 TextMark Multi-Directional Resize - Handle: " + handle + 
+                             ", Original Delta: (" + deltaX + "," + deltaY + ")" +
+                             ", Filtered Delta: (" + filteredDeltaX + "," + filteredDeltaY + ")");
+        }
+        
+        // Use soft-coded sensitivity parameters for fine-tuning
+        final double FONTSIZE_SENSITIVITY = RugrelDropdownConfig.TEXTMARK_FONT_SIZE_SENSITIVITY;
+        final double SPACING_SENSITIVITY = RugrelDropdownConfig.TEXTMARK_SPACING_SENSITIVITY;
+        final double FINE_FONTSIZE_SENSITIVITY = RugrelDropdownConfig.TEXTMARK_FINE_FONT_SENSITIVITY;
+        final double FINE_SPACING_SENSITIVITY = RugrelDropdownConfig.TEXTMARK_FINE_SPACING_SENSITIVITY;
+        final double LINE_SPACING_SENSITIVITY = RugrelDropdownConfig.TEXTMARK_LINE_SPACING_SENSITIVITY;
         
         switch (handle) {
             case TOP:
-                // TOP = Multi-Directional Font Size Control (Blue Circle +)
-                // Vertical movement = font size increase (UP = increase)
-                double fontIncrease = -deltaY * FONTSIZE_SENSITIVITY;  // Negative because up is negative
+                // TOP = Vertical Font Size Control (Blue Circle +) - STRICT DIRECTIONAL
+                // Use filtered delta for strict directional control  
+                double fontIncrease = -filteredDeltaY * FONTSIZE_SENSITIVITY;  // Negative because up is negative
                 float newTopSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, 
                     font.getSize() + (float)fontIncrease));
                 font = font.deriveFont(newTopSize);
                 
-                // Horizontal movement = line spacing adjustment
-                if (Math.abs(deltaX) > 3) {
-                    double lineSpacingDelta = deltaX * 0.01;
-                    lineSpacing = Math.max(0.5, Math.min(3.0, lineSpacing + lineSpacingDelta));
+                // Soft coding: Only allow horizontal effects if specifically enabled AND filtered delta allows it
+                if (!RugrelDropdownConfig.TEXTMARK_VERTICAL_ONLY_FONT_HANDLES && 
+                    RugrelDropdownConfig.TEXTMARK_ALLOW_LINE_SPACING_IN_FONT_RESIZE && 
+                    Math.abs(filteredDeltaX) > RugrelDropdownConfig.TEXTMARK_CROSS_AXIS_THRESHOLD) {
+                    double lineSpacingDelta = filteredDeltaX * LINE_SPACING_SENSITIVITY;
+                    lineSpacing = Math.max(RugrelDropdownConfig.TEXTMARK_MIN_LINE_SPACING, 
+                                         Math.min(RugrelDropdownConfig.TEXTMARK_MAX_LINE_SPACING, 
+                                                lineSpacing + lineSpacingDelta));
+                    System.out.println("   📝 Font Size UP: " + font.getSize() + "pt, Line Spacing: " + String.format("%.2f", lineSpacing) +
+                                     " (V:" + filteredDeltaY + "→size, H:" + filteredDeltaX + "→line)");
+                } else {
+                    // Strict directional mode - only font size changes (horizontal movement completely blocked)
+                    System.out.println("   📝 Font Size UP: " + font.getSize() + "pt (V:" + filteredDeltaY + "→size) [STRICT VERTICAL - H LOCKED]");
                 }
-                
-                System.out.println("   📝 Font Size UP: " + font.getSize() + "pt" + 
-                                 (Math.abs(deltaX) > 3 ? ", Line Spacing: " + String.format("%.2f", lineSpacing) : "") +
-                                 " (V:" + deltaY + "→size, H:" + deltaX + "→line)");
                 break;
                 
             case BOTTOM:
-                // BOTTOM = Multi-Directional Font Size Control (Blue Circle -)
-                // Vertical movement = font size decrease (DOWN = decrease)
-                double fontDecrease = deltaY * FONTSIZE_SENSITIVITY;
+                // BOTTOM = Vertical Font Size Control (Blue Circle -) - STRICT DIRECTIONAL
+                // Use filtered delta for strict directional control
+                double fontDecrease = filteredDeltaY * FONTSIZE_SENSITIVITY;
                 float newBottomSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, 
                     font.getSize() + (float)fontDecrease));
                 font = font.deriveFont(newBottomSize);
                 
-                // Horizontal movement = line spacing adjustment
-                if (Math.abs(deltaX) > 3) {
-                    double lineSpacingDelta = deltaX * 0.01;
-                    lineSpacing = Math.max(0.5, Math.min(3.0, lineSpacing + lineSpacingDelta));
+                // Soft coding: Only allow horizontal effects if specifically enabled AND filtered delta allows it
+                if (!RugrelDropdownConfig.TEXTMARK_VERTICAL_ONLY_FONT_HANDLES && 
+                    RugrelDropdownConfig.TEXTMARK_ALLOW_LINE_SPACING_IN_FONT_RESIZE && 
+                    Math.abs(filteredDeltaX) > RugrelDropdownConfig.TEXTMARK_CROSS_AXIS_THRESHOLD) {
+                    double lineSpacingDelta = filteredDeltaX * LINE_SPACING_SENSITIVITY;
+                    lineSpacing = Math.max(RugrelDropdownConfig.TEXTMARK_MIN_LINE_SPACING, 
+                                         Math.min(RugrelDropdownConfig.TEXTMARK_MAX_LINE_SPACING, 
+                                                lineSpacing + lineSpacingDelta));
+                    System.out.println("   📝 Font Size DOWN: " + font.getSize() + "pt, Line Spacing: " + String.format("%.2f", lineSpacing) +
+                                     " (V:" + filteredDeltaY + "→size, H:" + filteredDeltaX + "→line)");
+                } else {
+                    // Strict directional mode - only font size changes (horizontal movement completely blocked)
+                    System.out.println("   📝 Font Size DOWN: " + font.getSize() + "pt (V:" + filteredDeltaY + "→size) [STRICT VERTICAL - H LOCKED]");
                 }
-                
-                System.out.println("   📝 Font Size DOWN: " + font.getSize() + "pt" + 
-                                 (Math.abs(deltaX) > 3 ? ", Line Spacing: " + String.format("%.2f", lineSpacing) : "") +
-                                 " (V:" + deltaY + "→size, H:" + deltaX + "→line)");
                 break;
                 
             case LEFT:
-                // LEFT = Multi-Directional Character Spacing Control (Green Rectangle ◄)
-                // Horizontal = spacing decrease (LEFT = tighter)
-                if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                    double spacingDecrease = -deltaX * SPACING_SENSITIVITY;  // Negative for decrease
+                // LEFT = Horizontal Character Spacing Control (Green Rectangle ◄) - STRICT DIRECTIONAL
+                // Use filtered delta for strict directional control
+                
+                if (RugrelDropdownConfig.TEXTMARK_HORIZONTAL_ONLY_SPACING_HANDLES) {
+                    // Strict horizontal mode - only affect character spacing (vertical movement completely blocked)
+                    double spacingDecrease = -filteredDeltaX * SPACING_SENSITIVITY;  // Negative for decrease
                     characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
                         characterWidth + spacingDecrease));
-                    System.out.println("   ⬅️ Spacing decreased to: " + String.format("%.2f", characterWidth) + " (H-drag dominant)");
+                    System.out.println("   ⬅️ Spacing decreased to: " + String.format("%.2f", characterWidth) + 
+                                     " (H:" + filteredDeltaX + "→spacing) [STRICT HORIZONTAL - V LOCKED]");
                 } else {
-                    // Vertical = position adjustment
-                    y += deltaY / 2;
-                    System.out.println("   🔽 Position adjusted by: " + (deltaY/2) + " (V-drag dominant)");
+                    // Legacy multi-directional mode - but prevent cross-directional movement
+                    if (Math.abs(filteredDeltaX) > Math.abs(filteredDeltaY)) {
+                        double spacingDecrease = -filteredDeltaX * SPACING_SENSITIVITY;  // Negative for decrease
+                        characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
+                            characterWidth + spacingDecrease));
+                        System.out.println("   ⬅️ Spacing decreased to: " + String.format("%.2f", characterWidth) + " (H-drag dominant)");
+                    }
+                    // REMOVED: Automatic position adjustment to prevent cross-directional movement
+                    // Position adjustments during resize operations cause unwanted drag behavior
                 }
                 break;
                 
             case RIGHT:
-                // RIGHT = Multi-Directional Character Spacing Control (Green Rectangle ►)
-                // Horizontal = spacing increase (RIGHT = wider)
-                if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                    double spacingIncrease = deltaX * SPACING_SENSITIVITY;
+                // RIGHT = Horizontal Character Spacing Control (Green Rectangle ►) - STRICT DIRECTIONAL
+                // Use filtered delta for strict directional control
+                
+                if (RugrelDropdownConfig.TEXTMARK_HORIZONTAL_ONLY_SPACING_HANDLES) {
+                    // Strict horizontal mode - only affect character spacing (vertical movement completely blocked)
+                    double spacingIncrease = filteredDeltaX * SPACING_SENSITIVITY;
                     characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
                         characterWidth + spacingIncrease));
-                    System.out.println("   ➡️ Spacing increased to: " + String.format("%.2f", characterWidth) + " (H-drag dominant)");
+                    System.out.println("   ➡️ Spacing increased to: " + String.format("%.2f", characterWidth) + 
+                                     " (H:" + filteredDeltaX + "→spacing) [STRICT HORIZONTAL - V LOCKED]");
                 } else {
-                    // Vertical = position adjustment
-                    y += deltaY / 2;
-                    System.out.println("   🔽 Position adjusted by: " + (deltaY/2) + " (V-drag dominant)");
+                    // Legacy multi-directional mode - but prevent cross-directional movement
+                    if (Math.abs(filteredDeltaX) > Math.abs(filteredDeltaY)) {
+                        double spacingIncrease = filteredDeltaX * SPACING_SENSITIVITY;
+                        characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
+                            characterWidth + spacingIncrease));
+                        System.out.println("   ➡️ Spacing increased to: " + String.format("%.2f", characterWidth) + " (H-drag dominant)");
+                    }
+                    // REMOVED: Automatic position adjustment to prevent cross-directional movement
+                    // Position adjustments during resize operations cause unwanted drag behavior
                 }
                 break;
                 
             case TOP_LEFT:
                 // TOP_LEFT = Multi-Directional Combo Control (Orange Diamond)
-                // Horizontal = spacing decrease, Vertical = font size increase
-                double tlSpacingDelta = -deltaX * FINE_SPACING_SENSITIVITY;
-                double tlFontDelta = -deltaY * FINE_FONTSIZE_SENSITIVITY;
+                // Use filtered deltas for precise directional control
+                double tlSpacingDelta = -filteredDeltaX * FINE_SPACING_SENSITIVITY;
+                double tlFontDelta = -filteredDeltaY * FINE_FONTSIZE_SENSITIVITY;
                 
                 characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
                     characterWidth + tlSpacingDelta));
@@ -455,14 +687,14 @@ public class TextMark extends Mark {
                 
                 System.out.println("   🔧 Top-Left Combo - Font: " + font.getSize() + 
                                  "pt, Spacing: " + String.format("%.2f", characterWidth) +
-                                 " (H:" + deltaX + "→spacing, V:" + deltaY + "→font)");
+                                 " (H:" + filteredDeltaX + "→spacing, V:" + filteredDeltaY + "→font) [FILTERED]");
                 break;
                 
             case TOP_RIGHT:
                 // TOP_RIGHT = Multi-Directional Combo Control (Orange Diamond)
-                // Horizontal = spacing increase, Vertical = font size increase
-                double trSpacingDelta = deltaX * FINE_SPACING_SENSITIVITY;
-                double trFontDelta = -deltaY * FINE_FONTSIZE_SENSITIVITY;
+                // Use filtered deltas for precise directional control
+                double trSpacingDelta = filteredDeltaX * FINE_SPACING_SENSITIVITY;
+                double trFontDelta = -filteredDeltaY * FINE_FONTSIZE_SENSITIVITY;
                 
                 characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
                     characterWidth + trSpacingDelta));
@@ -472,14 +704,14 @@ public class TextMark extends Mark {
                 
                 System.out.println("   🔧 Top-Right Combo - Font: " + font.getSize() + 
                                  "pt, Spacing: " + String.format("%.2f", characterWidth) +
-                                 " (H:" + deltaX + "→spacing, V:" + deltaY + "→font)");
+                                 " (H:" + filteredDeltaX + "→spacing, V:" + filteredDeltaY + "→font) [FILTERED]");
                 break;
                 
             case BOTTOM_LEFT:
                 // BOTTOM_LEFT = Multi-Directional Combo Control (Orange Diamond)
-                // Horizontal = spacing decrease, Vertical = font size decrease
-                double blSpacingDelta = -deltaX * FINE_SPACING_SENSITIVITY;
-                double blFontDelta = deltaY * FINE_FONTSIZE_SENSITIVITY;
+                // Use filtered deltas for precise directional control
+                double blSpacingDelta = -filteredDeltaX * FINE_SPACING_SENSITIVITY;
+                double blFontDelta = filteredDeltaY * FINE_FONTSIZE_SENSITIVITY;
                 
                 characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
                     characterWidth + blSpacingDelta));
@@ -489,24 +721,62 @@ public class TextMark extends Mark {
                 
                 System.out.println("   🔧 Bottom-Left Combo - Font: " + font.getSize() + 
                                  "pt, Spacing: " + String.format("%.2f", characterWidth) +
-                                 " (H:" + deltaX + "→spacing, V:" + deltaY + "→font)");
+                                 " (H:" + filteredDeltaX + "→spacing, V:" + filteredDeltaY + "→font) [FILTERED]");
                 break;
                 
             case BOTTOM_RIGHT:
-                // BOTTOM_RIGHT = Multi-Directional Combo Control (Orange Diamond)
-                // Horizontal = spacing increase, Vertical = font size decrease
-                double brSpacingDelta = deltaX * FINE_SPACING_SENSITIVITY;
-                double brFontDelta = deltaY * FINE_FONTSIZE_SENSITIVITY;
+                // BOTTOM_RIGHT = Diagonal Combo Control (Orange Diamond) - DIRECTIONAL CONTROL
+                // Horizontal = spacing increase, Vertical = font size increase
                 
-                characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
-                    characterWidth + brSpacingDelta));
-                float brNewSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, 
-                    font.getSize() + (float)brFontDelta));
-                font = font.deriveFont(brNewSize);
-                
-                System.out.println("   🔧 Bottom-Right Combo - Font: " + font.getSize() + 
-                                 "pt, Spacing: " + String.format("%.2f", characterWidth) +
-                                 " (H:" + deltaX + "→spacing, V:" + deltaY + "→font)");
+                if (RugrelDropdownConfig.TEXTMARK_STRICT_DIRECTIONAL_RESIZE && 
+                    RugrelDropdownConfig.TEXTMARK_USE_DOMINANT_DIRECTION_ONLY) {
+                    
+                    // Check for directional dominance using filtered deltas
+                    if (isHorizontalDominant(filteredDeltaX, filteredDeltaY)) {
+                        // Horizontal dominant - only adjust spacing
+                        double brSpacingDelta = filteredDeltaX * SPACING_SENSITIVITY;
+                        characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
+                            characterWidth + brSpacingDelta));
+                        System.out.println("   🔧 Bottom-Right Horizontal - Spacing: " + String.format("%.2f", characterWidth) +
+                                         " (H:" + filteredDeltaX + "→spacing) [H-DOMINANT FILTERED]");
+                    } else if (isVerticalDominant(filteredDeltaX, filteredDeltaY)) {
+                        // Vertical dominant - only adjust font size
+                        double brFontDelta = filteredDeltaY * FONTSIZE_SENSITIVITY;
+                        float brNewSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, 
+                            font.getSize() + (float)brFontDelta));
+                        font = font.deriveFont(brNewSize);
+                        System.out.println("   🔧 Bottom-Right Vertical - Font: " + font.getSize() + "pt" +
+                                         " (V:" + filteredDeltaY + "→font) [V-DOMINANT FILTERED]");
+                    } else {
+                        // Balanced movement - apply both (traditional diagonal behavior)
+                        double brSpacingDelta = filteredDeltaX * FINE_SPACING_SENSITIVITY;
+                        double brFontDelta = filteredDeltaY * FINE_FONTSIZE_SENSITIVITY;
+                        
+                        characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
+                            characterWidth + brSpacingDelta));
+                        float brNewSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, 
+                            font.getSize() + (float)brFontDelta));
+                        font = font.deriveFont(brNewSize);
+                        
+                        System.out.println("   🔧 Bottom-Right Combo - Font: " + font.getSize() + 
+                                         "pt, Spacing: " + String.format("%.2f", characterWidth) +
+                                         " (H:" + filteredDeltaX + "→spacing, V:" + filteredDeltaY + "→font) [BALANCED FILTERED]");
+                    }
+                } else {
+                    // Legacy combined behavior
+                    double brSpacingDelta = filteredDeltaX * FINE_SPACING_SENSITIVITY;
+                    double brFontDelta = filteredDeltaY * FINE_FONTSIZE_SENSITIVITY;
+                    
+                    characterWidth = Math.max(MIN_CHARACTER_WIDTH, Math.min(MAX_CHARACTER_WIDTH, 
+                        characterWidth + brSpacingDelta));
+                    float brNewSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, 
+                        font.getSize() + (float)brFontDelta));
+                    font = font.deriveFont(brNewSize);
+                    
+                    System.out.println("   🔧 Bottom-Right Combo - Font: " + font.getSize() + 
+                                     "pt, Spacing: " + String.format("%.2f", characterWidth) +
+                                     " (H:" + filteredDeltaX + "→spacing, V:" + filteredDeltaY + "→font) [LEGACY FILTERED]");
+                }
                 break;
                 
             default:
@@ -520,6 +790,17 @@ public class TextMark extends Mark {
 
     @Override
     public void resizeTo(int mx, int my) {
+        // Soft coding: Check Lock Size flag before any resize operation
+        if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+            RugrelDropdownConfig.ENABLE_INTELLIGENT_LOCK_SIZE && 
+            lockSize && 
+            RugrelDropdownConfig.PREVENT_RESIZE_OPERATIONS_WHEN_LOCKED) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("TextMark resizeTo blocked: Size is locked");
+            }
+            return;
+        }
+        
         if (!dynamicResizing || !getCanResize() || activeHandle == TextResizeHandle.NONE) {
             // Fall back to standard resize if no active handle
             super.resizeTo(mx, my);
@@ -563,4 +844,193 @@ public class TextMark extends Mark {
         activeHandle = TextResizeHandle.NONE;
         resizing = false;
     }
+    
+    // ==================== POSITION LOCKING INTEGRATION ====================
+    
+    /**
+     * Override drag start to check position lock permissions
+     */
+    @Override
+    public void startDrag(int mx, int my) {
+        if (!isMovementAllowed()) {
+            if (RugrelDropdownConfig.LOG_POSITION_LOCK_EVENTS) {
+                System.out.println("🚫 Drag start blocked - position is locked");
+            }
+            return;  // Block drag initiation
+        }
+        
+        super.startDrag(mx, my);
+        
+        if (RugrelDropdownConfig.DEBUG_POSITION_LOCKING) {
+            System.out.println("▶️ Drag started for " + (isPositionLocked() ? "locked" : "unlocked") + " object");
+        }
+    }
+    
+    /**
+     * Override drag to enforce position locking
+     */
+    @Override
+    public void dragTo(int mx, int my) {
+        if (!isMovementAllowed()) {
+            if (RugrelDropdownConfig.LOG_POSITION_LOCK_EVENTS) {
+                System.out.println("🚫 Drag movement blocked - position is locked");
+            }
+            return;  // Block drag movement
+        }
+        
+        // Store position before drag
+        int oldX = this.x;
+        int oldY = this.y;
+        
+        super.dragTo(mx, my);
+        
+        // If position is locked, enforce the lock after any movement
+        if (isPositionLocked()) {
+            enforcePositionLock();
+            
+            // If position was reset due to lock, log it
+            if (this.x != oldX || this.y != oldY) {
+                if (RugrelDropdownConfig.DEBUG_POSITION_LOCKING) {
+                    System.out.println("⚡ Position enforced during drag - reset from (" + oldX + "," + oldY + ") to (" + this.x + "," + this.y + ")");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Override to check drag permissions
+     */
+    @Override
+    public boolean canDrag() {
+        boolean parentCanDrag = super.canDrag();
+        boolean movementAllowed = isMovementAllowed();
+        
+        return parentCanDrag && movementAllowed;
+    }
+    
+    /**
+     * Override to automatically lock position after placement
+     */
+    @Override
+    public void stopDrag() {
+        super.stopDrag();
+        
+        // Auto-lock position after drag completion (placement)
+        if (!isPositionLocked() && RugrelDropdownConfig.AUTO_LOCK_ON_PLACEMENT) {
+            autoLockOnPlacement();
+        }
+        
+        if (RugrelDropdownConfig.DEBUG_POSITION_LOCKING) {
+            System.out.println("⏹️ Drag stopped - Position lock status: " + (isPositionLocked() ? "LOCKED" : "UNLOCKED"));
+        }
+    }
+    
+    // ==================== POSITION LOCKING METHODS ====================
+    
+    /**
+     * Lock the position of this object (prevents movement)
+     */
+    public void lockPosition(String reason) {
+        if (!RugrelDropdownConfig.ENABLE_POSITION_LOCKING) return;
+        
+        this.positionLocked = true;
+        this.lockedTopLeftX = this.x;
+        this.lockedTopLeftY = this.y;
+        this.positionLockTime = System.currentTimeMillis();
+        this.lockReason = (reason != null) ? reason : "MANUAL";
+        
+        if (RugrelDropdownConfig.DEBUG_POSITION_LOCKING) {
+            System.out.println("🔒 Position locked at (" + lockedTopLeftX + "," + lockedTopLeftY + ") - Reason: " + lockReason);
+        }
+    }
+    
+    /**
+     * Automatically lock position after placement (if enabled)
+     */
+    public void autoLockOnPlacement() {
+        if (RugrelDropdownConfig.AUTO_LOCK_ON_PLACEMENT && RugrelDropdownConfig.LOCK_TOP_LEFT_CORNER) {
+            lockPosition("AUTO_PLACEMENT");
+        }
+    }
+    
+    /**
+     * Check if position is locked
+     */
+    public boolean isPositionLocked() {
+        return RugrelDropdownConfig.ENABLE_POSITION_LOCKING && positionLocked;
+    }
+    
+    /**
+     * Attempt to unlock position (only if manual unlock is enabled)
+     */
+    public boolean attemptUnlockPosition() {
+        if (!RugrelDropdownConfig.ENABLE_MANUAL_POSITION_UNLOCK) {
+            if (RugrelDropdownConfig.LOG_POSITION_LOCK_EVENTS) {
+                System.out.println("🚫 Position unlock blocked - manual unlock disabled");
+            }
+            return false;
+        }
+        
+        this.positionLocked = false;
+        this.lockedTopLeftX = -1;
+        this.lockedTopLeftY = -1;
+        this.lockReason = null;
+        
+        if (RugrelDropdownConfig.DEBUG_POSITION_LOCKING) {
+            System.out.println("🔓 Position unlocked");
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Check if movement is allowed (respects position lock)
+     */
+    public boolean isMovementAllowed() {
+        if (!isPositionLocked()) {
+            return true;  // Not locked, movement is allowed
+        }
+        
+        if (RugrelDropdownConfig.PREVENT_DRAG_WHEN_LOCKED) {
+            if (RugrelDropdownConfig.LOG_POSITION_LOCK_EVENTS) {
+                System.out.println("🚫 Movement blocked - position is locked");
+            }
+            return false;
+        }
+        
+        return true;  // Position locked but movement still allowed by config
+    }
+    
+    /**
+     * Enforce position lock (reset to locked position if moved)
+     */
+    public void enforcePositionLock() {
+        if (!isPositionLocked() || lockedTopLeftX == -1 || lockedTopLeftY == -1) {
+            return;
+        }
+        
+        // Check if object has been moved from locked position
+        if (this.x != lockedTopLeftX || this.y != lockedTopLeftY) {
+            if (RugrelDropdownConfig.DEBUG_POSITION_LOCKING) {
+                System.out.println("⚡ Enforcing position lock: resetting to (" + lockedTopLeftX + "," + lockedTopLeftY + ")");
+            }
+            
+            // Reset to locked position
+            this.x = lockedTopLeftX;
+            this.y = lockedTopLeftY;
+        }
+    }
+    
+    /**
+     * Get position lock information for display
+     */
+    public String getPositionLockInfo() {
+        if (!isPositionLocked()) {
+            return "Position: Unlocked";
+        }
+        
+        return String.format("Position: Locked at (%d,%d) [%s]", 
+                            lockedTopLeftX, lockedTopLeftY, lockReason);
+    }
+
 }

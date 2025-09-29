@@ -1,7 +1,10 @@
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,11 +22,63 @@ public class ThorX6PropertiesConfig {
     
     // ==================== SOFT CODING CONFIGURATION ====================
     
-    // ThorX6 Properties (Exact Order from ThorX6 Software)
-    public static final String[] THORX6_PROPERTIES = {
+    // Original ThorX6 Properties (Exact Order from ThorX6 Software)
+    private static final String[] ORIGINAL_THORX6_PROPERTIES = {
         "Name", "X", "Y", "Z", "Angle", "Width", "Height", 
         "Clear Trans", "Mirror", "Lock Size", "Disable Print"
     };
+    
+    // ThorX6 Properties (Filtered based on duplicate prevention configuration)
+    public static final String[] THORX6_PROPERTIES = getFilteredThorX6Properties();
+    
+    // Filtered ThorX6 properties based on soft coding configuration  
+    private static String[] getFilteredThorX6Properties() {
+        try {
+            // Check if ThorX6 Properties should show the action properties (when it's the bottom strip)
+            if (RugrelDropdownConfig.SHOW_PROPERTIES_IN_BOTTOM_STRIP && 
+                RugrelDropdownConfig.SHOW_PROPERTIES_IN_THORX6_CONFIG) {
+                
+                if (RugrelDropdownConfig.LOG_PROPERTY_ICON_CREATION) {
+                    System.out.println("✅ CREATING: ThorX6 Properties as PRIMARY location with action properties");
+                    System.out.println("   Including: Clear Trans, Mirror, Lock Size, Disable Print");
+                }
+                
+                // Return ALL properties including the action ones (this is the primary location)
+                return ORIGINAL_THORX6_PROPERTIES.clone();
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error in getFilteredThorX6Properties: " + e.getMessage());
+            // Fallback to basic properties
+            return new String[] {"Name", "X", "Y", "Z", "Angle", "Width", "Height"};
+        }
+        
+        // Check if we should block ThorX6 property creation entirely
+        if (RugrelDropdownConfig.BLOCK_THORX6_PROPERTY_CREATION ||
+            RugrelDropdownConfig.DISABLE_THORX6_PROPERTY_DUPLICATES ||
+            !RugrelDropdownConfig.SHOW_PROPERTIES_IN_THORX6_CONFIG) {
+            
+            if (RugrelDropdownConfig.LOG_BLOCKED_DUPLICATE_ATTEMPTS) {
+                System.out.println("🚫 BLOCKED: ThorX6 Properties creation disabled by soft coding");
+                System.out.println("   Using basic properties only (Name, X, Y, Z, Angle, Width, Height)");
+            }
+            
+            // Return only basic properties without the duplicate ones
+            return new String[] {"Name", "X", "Y", "Z", "Angle", "Width", "Height"};
+        }
+        
+        // If no duplicate prevention is enabled, return original properties
+        if (RugrelDropdownConfig.LOG_PROPERTY_ICON_CREATION) {
+            System.out.println("⚠️ WARNING: Creating ThorX6 Properties with potential duplicates");
+        }
+        
+        // Final fallback to ensure we always return something
+        if (ORIGINAL_THORX6_PROPERTIES != null) {
+            return ORIGINAL_THORX6_PROPERTIES.clone();
+        } else {
+            // Ultimate fallback
+            return new String[] {"Name", "X", "Y", "Z", "Angle", "Width", "Height", "Clear Trans", "Mirror", "Lock Size", "Disable Print"};
+        }
+    }
     
     // Property Types (Dynamic Technique)
     public static final Map<String, String> PROPERTY_TYPES = new HashMap<String, String>() {{
@@ -204,16 +259,119 @@ public class ThorX6PropertiesConfig {
     }
     
     /**
-     * Create dynamic checkbox
+     * Create dynamic checkbox (with clean format - no duplicate text)
      */
     private static JCheckBox createDynamicCheckBox(String text, boolean defaultValue) {
-        JCheckBox checkBox = new JCheckBox(text, defaultValue);
+        // Apply soft coding configuration to remove duplicate text
+        String checkboxText = text;
+        if (RugrelDropdownConfig.REMOVE_DUPLICATE_PROPERTY_TEXT || 
+            RugrelDropdownConfig.USE_CLEAN_CHECKBOX_FORMAT) {
+            // Remove the text from checkbox - it will be shown in the label instead
+            checkboxText = "";
+            
+            if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+                System.out.println("🧹 CLEAN FORMAT: Checkbox for '" + text + "' created without duplicate text");
+            }
+        }
+        
+        JCheckBox checkBox = new JCheckBox(checkboxText, defaultValue);
         checkBox.setBackground(PANEL_BACKGROUND);
         checkBox.setFont(FIELD_FONT);
         checkBox.setForeground(LABEL_COLOR);
         
+        // Store the original property name as client property for functionality
+        checkBox.putClientProperty("propertyName", text);
+        
         if (ENABLE_DYNAMIC_UPDATES) {
-            checkBox.addActionListener(e -> handlePropertyUpdate("CHECKBOX", checkBox.isSelected()));
+            // Special handling for Clear Trans functionality
+            if ("Clear Trans".equals(text)) {
+                checkBox.addActionListener(e -> {
+                    // Handle property update for logging
+                    handlePropertyUpdate("CHECKBOX", checkBox.isSelected());
+                    
+                    // If checkbox is checked (selected), trigger Clear Trans functionality
+                    if (checkBox.isSelected()) {
+                        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+                            System.out.println("🧹 Clear Trans checkbox activated - triggering intelligent deletion...");
+                        }
+                        
+                        // Import the handler and trigger Clear Trans
+                        try {
+                            MarkTabConfig.handleClearTransform();
+                            // Automatically uncheck after operation completes
+                            SwingUtilities.invokeLater(() -> checkBox.setSelected(false));
+                        } catch (Exception ex) {
+                            System.err.println("❌ Clear Trans checkbox trigger failed: " + ex.getMessage());
+                            // Uncheck on error
+                            SwingUtilities.invokeLater(() -> checkBox.setSelected(false));
+                        }
+                    }
+                });
+            } else if ("Mirror".equals(text)) {
+                // Special handling for Mirror functionality
+                checkBox.addActionListener(e -> {
+                    // Handle property update for logging
+                    handlePropertyUpdate("CHECKBOX", checkBox.isSelected());
+                    
+                    // If checkbox is checked (selected), trigger Mirror functionality
+                    if (checkBox.isSelected()) {
+                        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+                            System.out.println("🪞 Mirror checkbox activated - triggering intelligent image flipping...");
+                        }
+                        
+                        // Import the handler and trigger Mirror
+                        try {
+                            MarkTabConfig.handleMirror();
+                            // Automatically uncheck after operation completes
+                            SwingUtilities.invokeLater(() -> checkBox.setSelected(false));
+                        } catch (Exception ex) {
+                            System.err.println("❌ Mirror checkbox trigger failed: " + ex.getMessage());
+                            // Uncheck on error
+                            SwingUtilities.invokeLater(() -> checkBox.setSelected(false));
+                        }
+                    }
+                });
+            } else if ("Lock Size".equals(text)) {
+                // Special handling for Lock Size functionality
+                checkBox.addActionListener(e -> {
+                    // Handle property update for logging
+                    handlePropertyUpdate("CHECKBOX", checkBox.isSelected());
+                    
+                    // Soft coding: Enhanced Lock Size checkbox handling
+                    if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+                        RugrelDropdownConfig.SYNC_WITH_CHECKBOX_STATE) {
+                        
+                        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+                            System.out.println("🔒 Lock Size checkbox toggled - triggering intelligent size locking...");
+                        }
+                        
+                        // Import the handler and trigger Lock Size
+                        try {
+                            MarkTabConfig.handleLockSize();
+                            
+                            // For Lock Size, keep checkbox state to reflect lock status
+                            // Don't auto-uncheck like Mirror since it's a persistent state
+                            if (RugrelDropdownConfig.LOG_SIZE_LOCK_OPERATIONS) {
+                                System.out.println("Lock Size operation completed successfully");
+                            }
+                            
+                        } catch (Exception ex) {
+                            System.err.println("❌ Lock Size checkbox trigger failed: " + ex.getMessage());
+                            // Revert checkbox state on error
+                            SwingUtilities.invokeLater(() -> checkBox.setSelected(!checkBox.isSelected()));
+                        }
+                    } else {
+                        // Legacy mode: Just log the state change
+                        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+                            String state = checkBox.isSelected() ? "enabled" : "disabled";
+                            System.out.println("Lock Size checkbox " + state + " (legacy mode)");
+                        }
+                    }
+                });
+            } else {
+                // Standard handling for other checkboxes
+                checkBox.addActionListener(e -> handlePropertyUpdate("CHECKBOX", checkBox.isSelected()));
+            }
         }
         
         return checkBox;
@@ -227,6 +385,98 @@ public class ThorX6PropertiesConfig {
         label.setFont(LABEL_FONT);
         label.setForeground(LABEL_COLOR);
         return label;
+    }
+    
+    /**
+     * Create aligned label with enhanced formatting for better visual association
+     */
+    private static JLabel createAlignedLabel(String text) {
+        JLabel label = new JLabel(text + ":");
+        label.setFont(LABEL_FONT);
+        label.setForeground(LABEL_COLOR);
+        
+        // Apply alignment configuration
+        if (RugrelDropdownConfig.ENABLE_PROPERTY_ALIGNMENT) {
+            // Set preferred size for consistent alignment
+            label.setPreferredSize(new Dimension(
+                RugrelDropdownConfig.PROPERTY_LABEL_WIDTH, 
+                RugrelDropdownConfig.PROPERTY_ROW_HEIGHT
+            ));
+            
+            // Align text based on configuration
+            if (RugrelDropdownConfig.ALIGN_LABELS_RIGHT) {
+                label.setHorizontalAlignment(SwingConstants.RIGHT);
+            } else {
+                label.setHorizontalAlignment(SwingConstants.LEFT);
+            }
+            
+            // Add visual enhancement for better association
+            label.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+            
+            if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+                System.out.println("📏 ALIGNED LABEL: '" + text + "' created with " + 
+                    RugrelDropdownConfig.PROPERTY_LABEL_WIDTH + "px width");
+            }
+        }
+        
+        return label;
+    }
+    
+    /**
+     * Enhance property components for better visual association and alignment
+     */
+    private static void enhancePropertyComponents(JLabel label, JComponent component, String propertyName) {
+        // Set consistent component dimensions
+        component.setPreferredSize(new Dimension(
+            RugrelDropdownConfig.PROPERTY_CONTROL_WIDTH,
+            RugrelDropdownConfig.PROPERTY_ROW_HEIGHT
+        ));
+        
+        // Add visual grouping if enabled
+        if (RugrelDropdownConfig.ADD_VISUAL_GROUPING) {
+            // Add subtle border to show label-control association
+            Border groupBorder = BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(1, 1, 1, 1),
+                BorderFactory.createLineBorder(new Color(230, 230, 230), 1)
+            );
+            
+            // Apply border to checkbox properties for better visibility
+            if (component instanceof JCheckBox) {
+                component.setBorder(groupBorder);
+            }
+        }
+        
+        // Add hover effects if enabled
+        if (RugrelDropdownConfig.HIGHLIGHT_PROPERTY_ON_HOVER) {
+            Color originalLabelColor = label.getForeground();
+            Color originalComponentColor = component.getBackground();
+            Color hoverColor = new Color(240, 248, 255);
+            
+            MouseAdapter hoverEffect = new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    label.setForeground(new Color(0, 100, 200));
+                    if (!(component instanceof JCheckBox)) {
+                        component.setBackground(hoverColor);
+                    }
+                }
+                
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    label.setForeground(originalLabelColor);
+                    if (!(component instanceof JCheckBox)) {
+                        component.setBackground(originalComponentColor);
+                    }
+                }
+            };
+            
+            label.addMouseListener(hoverEffect);
+            component.addMouseListener(hoverEffect);
+        }
+        
+        if (RugrelDropdownConfig.LOG_PROPERTY_ACTIONS) {
+            System.out.println("✨ ENHANCED: Property '" + propertyName + "' with aligned layout and visual effects");
+        }
     }
     
     /**
@@ -332,6 +582,15 @@ public class ThorX6PropertiesConfig {
                     coordinates.put("Angle", 0.0); // Double value for DECIMAL type
                     coordinates.put("Width", (int) Math.round(mark.width / 10.0)); // Convert to mm as integer
                     coordinates.put("Height", (int) Math.round(mark.height / 10.0)); // Convert to mm as integer
+                    
+                    // Soft coding: Update property states based on mark properties
+                    if (RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY && 
+                        RugrelDropdownConfig.SYNC_WITH_CHECKBOX_STATE) {
+                        coordinates.put("Clear Trans", mark.clearTrans);
+                        coordinates.put("Mirror", mark.mirror);  
+                        coordinates.put("Lock Size", mark.lockSize);
+                        coordinates.put("Disable Print", mark.disablePrint);
+                    }
                     
                     System.out.println("📍 Coordinates updated: " + mark.getClass().getSimpleName() + " at (" + mark.x + "," + mark.y + ") size " + mark.width + "x" + mark.height);
                 }

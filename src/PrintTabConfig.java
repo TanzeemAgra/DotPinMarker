@@ -48,7 +48,32 @@ public class PrintTabConfig {
         }
     }
     
-    // Print-specific toolbar buttons
+    // ==================== PRINT TAB GROUP ORDERING CONFIGURATION (SOFT CODING) ====================
+    
+    // Group Ordering Control
+    public static final boolean ENABLE_GROUPED_TOOLBAR = true;           // ENABLE grouped toolbar structure
+    public static final boolean OPERATIONS_BELOW_PRINTER = true;         // PLACE Operations Sub Group below Printer Sub Group
+    public static final boolean ADD_GROUP_SEPARATORS = true;             // ADD visual separators between groups
+    public static final boolean SHOW_GROUP_LABELS = true;                // SHOW group labels (e.g., "Printer", "Operations")
+    
+    // Printer Sub Group Configuration
+    public static final boolean ENABLE_PRINTER_SUB_GROUP = true;         // ENABLE Printer Sub Group
+    public static final String PRINTER_GROUP_LABEL = "Printer";          // Label for Printer Sub Group
+    public static final ToolbarButton[] PRINTER_GROUP_BUTTONS = {
+        new ToolbarButton("Setup", "⚙", "Print setup (Ctrl+S)", () -> System.out.println("⚙ Print setup")),
+        new ToolbarButton("Settings", "🔧", "Print settings (Ctrl+T)", () -> System.out.println("🔧 Print settings"))
+    };
+    
+    // Operations Sub Group Configuration  
+    public static final boolean ENABLE_OPERATIONS_SUB_GROUP = true;      // ENABLE Operations Sub Group
+    public static final String OPERATIONS_GROUP_LABEL = "Operations";    // Label for Operations Sub Group
+    public static final ToolbarButton[] OPERATIONS_GROUP_BUTTONS = {
+        new ToolbarButton("Preview", "👁", "Print preview (Ctrl+P)", () -> System.out.println("👁 Print preview")),
+        new ToolbarButton("Print", "🖨", "Start printing (Ctrl+Shift+P)", () -> System.out.println("🖨 Print action")),
+        new ToolbarButton("Queue", "📋", "Print queue (Ctrl+Q)", () -> System.out.println("📋 Print queue"))
+    };
+    
+    // Legacy toolbar buttons (fallback for non-grouped mode)
     public static final ToolbarButton[] TOOLBAR_BUTTONS = {
         new ToolbarButton("Setup", "⚙", "Print setup (Ctrl+S)", () -> System.out.println("⚙ Print setup")),
         new ToolbarButton("Preview", "👁", "Print preview (Ctrl+P)", () -> System.out.println("👁 Print preview")),
@@ -174,7 +199,7 @@ public class PrintTabConfig {
     }
     
     /**
-     * Create vertical toolbar (same style as Mark tab)
+     * Create vertical toolbar with grouped structure (Soft Coding Enhanced)
      */
     private static JPanel createVerticalToolbar() {
         JPanel toolbar = new JPanel();
@@ -186,15 +211,76 @@ public class PrintTabConfig {
             BorderFactory.createEmptyBorder(SPACING, SPACING, SPACING, SPACING)
         ));
         
-        // Add toolbar buttons
-        for (ToolbarButton config : TOOLBAR_BUTTONS) {
+        // Soft coding: Use grouped toolbar structure if enabled
+        if (ENABLE_GROUPED_TOOLBAR) {
+            System.out.println("🔧 Creating grouped Print Tab toolbar: Operations below Printer");
+            
+            // Determine group order based on soft coding configuration
+            if (OPERATIONS_BELOW_PRINTER) {
+                // Printer Sub Group first (top)
+                if (ENABLE_PRINTER_SUB_GROUP) {
+                    addToolbarGroup(toolbar, PRINTER_GROUP_LABEL, PRINTER_GROUP_BUTTONS);
+                }
+                
+                // Operations Sub Group below (bottom)
+                if (ENABLE_OPERATIONS_SUB_GROUP) {
+                    addToolbarGroup(toolbar, OPERATIONS_GROUP_LABEL, OPERATIONS_GROUP_BUTTONS);
+                }
+            } else {
+                // Operations Sub Group first (top) - alternative order
+                if (ENABLE_OPERATIONS_SUB_GROUP) {
+                    addToolbarGroup(toolbar, OPERATIONS_GROUP_LABEL, OPERATIONS_GROUP_BUTTONS);
+                }
+                
+                // Printer Sub Group below (bottom)
+                if (ENABLE_PRINTER_SUB_GROUP) {
+                    addToolbarGroup(toolbar, PRINTER_GROUP_LABEL, PRINTER_GROUP_BUTTONS);
+                }
+            }
+        } else {
+            // Legacy mode: Add toolbar buttons linearly
+            System.out.println("🔧 Using legacy Print Tab toolbar layout");
+            for (ToolbarButton config : TOOLBAR_BUTTONS) {
+                JButton button = createToolbarButton(config);
+                toolbar.add(button);
+                toolbar.add(Box.createVerticalStrut(SPACING));
+            }
+        }
+        
+        toolbar.add(Box.createVerticalGlue());
+        return toolbar;
+    }
+    
+    /**
+     * Add a toolbar group with label and buttons (Soft Coding Helper)
+     */
+    private static void addToolbarGroup(JPanel toolbar, String groupLabel, ToolbarButton[] buttons) {
+        // Add group label if enabled
+        if (SHOW_GROUP_LABELS) {
+            JLabel label = new JLabel(groupLabel);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 9));
+            label.setForeground(TEXT_COLOR);
+            label.setAlignmentX(Component.CENTER_ALIGNMENT);
+            label.setBorder(BorderFactory.createEmptyBorder(2, 0, 4, 0));
+            toolbar.add(label);
+        }
+        
+        // Add group buttons
+        for (ToolbarButton config : buttons) {
             JButton button = createToolbarButton(config);
             toolbar.add(button);
             toolbar.add(Box.createVerticalStrut(SPACING));
         }
         
-        toolbar.add(Box.createVerticalGlue());
-        return toolbar;
+        // Add group separator if enabled and not the last group
+        if (ADD_GROUP_SEPARATORS) {
+            JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
+            separator.setMaximumSize(new Dimension(TOOLBAR_WIDTH - 10, 1));
+            separator.setForeground(BORDER_COLOR);
+            toolbar.add(Box.createVerticalStrut(SPACING));
+            toolbar.add(separator);
+            toolbar.add(Box.createVerticalStrut(SPACING * 2));
+        }
     }
     
     /**

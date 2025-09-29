@@ -1,0 +1,502 @@
+import javax.swing.*;
+import java.awt.*;
+import java.util.Map;
+
+/**
+ * ThorX6 Coder Type Integration Module
+ * 
+ * This module provides seamless integration between the new ThorX6 Coder Type system
+ * and the existing Mark -> Reconstructed -> All Coders functionality.
+ * 
+ * Integration Features:
+ * - Non-intrusive connection to existing codebase
+ * - Soft coding integration flags
+ * - Bridge between old and new coder systems
+ * - Backward compatibility preservation
+ * 
+ * This integration does NOT modify any existing code outside this module.
+ */
+public class ThorX6CoderTypeIntegration {
+    
+    // ==================== INTEGRATION FLAGS ====================
+    
+    /**
+     * Soft coding flags to control integration behavior
+     */
+    public static final boolean ENABLE_THORX6_CODER_TYPE_SYSTEM = true;  // Master enable/disable
+    public static final boolean INTEGRATE_WITH_RECONSTRUCTED_CODERS = true;  // Integrate with existing system
+    public static final boolean REPLACE_ALL_CODERS_FUNCTIONALITY = false;   // Replace vs. enhance existing
+    public static final boolean ENABLE_THORX6_CODER_TYPE_PREVIEW = true;    // Enable real-time preview
+    
+    // ==================== ENHANCED CODER INTERFACE ====================
+    
+    /**
+     * Enhanced coder interface that bridges the new system with existing ThorX6HorizontalConfig.CoderInterface
+     */
+    public static class EnhancedCoderInterface implements ThorX6HorizontalConfig.CoderInterface {
+        private ThorX6CoderTypeSystem.CoderType underlyingCoder;
+        private ThorX6CoderTypeGUI coderGUI;
+        
+        public EnhancedCoderInterface(ThorX6CoderTypeSystem.CoderType coder) {
+            this.underlyingCoder = coder;
+        }
+        
+        @Override
+        public String getTypeName() {
+            return underlyingCoder.getTypeName();
+        }
+        
+        @Override
+        public String generateCode() {
+            return underlyingCoder.generateCode();
+        }
+        
+        @Override
+        public JPanel getConfigurationPanel() {
+            if (coderGUI == null) {
+                coderGUI = new ThorX6CoderTypeGUI();
+                coderGUI.setCoderType(underlyingCoder.getTypeName());
+            }
+            return coderGUI;
+        }
+        
+        @Override
+        public void configure() {
+            // Configuration is handled through the GUI panel
+        }
+        
+        @Override
+        public boolean isConfigured() {
+            return true; // Always ready to generate
+        }
+        
+        @Override
+        public String getPreview() {
+            return underlyingCoder.getPreview();
+        }
+        
+        @Override
+        public void reset() {
+            underlyingCoder.reset();
+        }
+        
+        /**
+         * Get the underlying ThorX6 coder type
+         */
+        public ThorX6CoderTypeSystem.CoderType getUnderlyingCoder() {
+            return underlyingCoder;
+        }
+        
+        /**
+         * Get the coder GUI component
+         */
+        public ThorX6CoderTypeGUI getCoderGUI() {
+            return coderGUI;
+        }
+    }
+    
+    // ==================== CODER TYPE BRIDGE ====================
+    
+    /**
+     * Bridge class that creates enhanced coders for all ThorX6 coder types
+     */
+    public static class ThorX6CoderTypeBridge {
+        
+        /**
+         * Create enhanced coder interfaces for all available ThorX6 coder types
+         */
+        public static ThorX6HorizontalConfig.CoderInterface[] createEnhancedCoders() {
+            if (!ENABLE_THORX6_CODER_TYPE_SYSTEM) {
+                return new ThorX6HorizontalConfig.CoderInterface[0];
+            }
+            
+            String[] availableTypes = ThorX6CoderTypeSystem.CoderTypeRegistry.getAvailableTypes();
+            ThorX6HorizontalConfig.CoderInterface[] enhancedCoders = new ThorX6HorizontalConfig.CoderInterface[availableTypes.length];
+            
+            for (int i = 0; i < availableTypes.length; i++) {
+                ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType(availableTypes[i]);
+                enhancedCoders[i] = new EnhancedCoderInterface(coder);
+            }
+            
+            return enhancedCoders;
+        }
+        
+        /**
+         * Create a single enhanced coder by type name
+         */
+        public static ThorX6HorizontalConfig.CoderInterface createEnhancedCoder(String typeName) {
+            if (!ENABLE_THORX6_CODER_TYPE_SYSTEM) {
+                return null;
+            }
+            
+            ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType(typeName);
+            if (coder != null) {
+                return new EnhancedCoderInterface(coder);
+            }
+            return null;
+        }
+    }
+    
+    // ==================== INTEGRATION UTILITIES ====================
+    
+    /**
+     * Integration utilities for connecting with existing system
+     */
+    public static class IntegrationUtils {
+        
+        /**
+         * Create an enhanced reconstructed coder array that includes ThorX6 coder types
+         */
+        public static ThorX6HorizontalConfig.CoderInterface[] createEnhancedReconstructedCoders() {
+            // Get existing reconstructed coders if any
+            ThorX6HorizontalConfig.CoderInterface[] existingCoders = ThorX6HorizontalConfig.RECONSTRUCTED_CODERS;
+            
+            if (INTEGRATE_WITH_RECONSTRUCTED_CODERS && ENABLE_THORX6_CODER_TYPE_SYSTEM) {
+                // Create enhanced coders
+                ThorX6HorizontalConfig.CoderInterface[] thorx6Coders = ThorX6CoderTypeBridge.createEnhancedCoders();
+                
+                if (REPLACE_ALL_CODERS_FUNCTIONALITY) {
+                    // Replace existing coders completely
+                    return thorx6Coders;
+                } else {
+                    // Merge existing and new coders
+                    ThorX6HorizontalConfig.CoderInterface[] mergedCoders = 
+                        new ThorX6HorizontalConfig.CoderInterface[existingCoders.length + thorx6Coders.length];
+                    
+                    System.arraycopy(existingCoders, 0, mergedCoders, 0, existingCoders.length);
+                    System.arraycopy(thorx6Coders, 0, mergedCoders, existingCoders.length, thorx6Coders.length);
+                    
+                    return mergedCoders;
+                }
+            }
+            
+            return existingCoders;
+        }
+        
+        /**
+         * Create a comprehensive coder type dialog
+         */
+        public static JDialog createThorX6CoderTypeDialog(Frame parent) {
+            JDialog dialog = new JDialog(parent, "ThorX6 Coder Type Configuration", true);
+            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+            
+            ThorX6CoderTypeGUI coderGUI = new ThorX6CoderTypeGUI();
+            
+            // Add integration hooks
+            coderGUI.addCodeGenerationListener(new ThorX6CoderTypeGUI.CodeGenerationListener() {
+                @Override
+                public void onCodeGenerated(String code, String coderType) {
+                    // This can be connected to the main application's marking system\n                    System.out.println("📝 Generated code for marking: " + code + " (Type: " + coderType + ")");
+                    
+                    // Example integration: Pass code to marking system
+                    // MarkingSystem.addCodeToCurrentMark(code);
+                }
+            });
+            
+            dialog.add(coderGUI);
+            dialog.pack();
+            dialog.setLocationRelativeTo(parent);
+            
+            return dialog;
+        }
+        
+        /**
+         * Get current active coder type from the system
+         */
+        public static String getCurrentActiveCoderType() {
+            // This would integrate with ThorX6HorizontalConfig.currentActiveCoder
+            if (ThorX6HorizontalConfig.currentActiveCoder instanceof EnhancedCoderInterface) {
+                EnhancedCoderInterface enhanced = (EnhancedCoderInterface) ThorX6HorizontalConfig.currentActiveCoder;
+                return enhanced.getTypeName();
+            }
+            return "Unknown";
+        }
+        
+        /**
+         * Set active coder type in the system
+         */
+        public static void setActiveCoderType(String typeName) {
+            ThorX6HorizontalConfig.CoderInterface coder = ThorX6CoderTypeBridge.createEnhancedCoder(typeName);
+            if (coder != null) {
+                ThorX6HorizontalConfig.currentActiveCoder = coder;
+            }
+        }
+        
+        /**
+         * Check if ThorX6 coder type system is available
+         */
+        public static boolean isThorX6CoderTypeSystemAvailable() {
+            return ENABLE_THORX6_CODER_TYPE_SYSTEM;
+        }
+        
+        /**
+         * Get integration status information
+         */
+        public static String getIntegrationStatus() {
+            StringBuilder status = new StringBuilder();
+            status.append("ThorX6 Coder Type Integration Status:\n");
+            status.append("  System Enabled: ").append(ENABLE_THORX6_CODER_TYPE_SYSTEM).append("\n");
+            status.append("  Reconstructed Integration: ").append(INTEGRATE_WITH_RECONSTRUCTED_CODERS).append("\n");
+            status.append("  Replace Mode: ").append(REPLACE_ALL_CODERS_FUNCTIONALITY).append("\n");
+            status.append("  Preview Enabled: ").append(ENABLE_THORX6_CODER_TYPE_PREVIEW).append("\n");
+            
+            if (ENABLE_THORX6_CODER_TYPE_SYSTEM) {
+                String[] types = ThorX6CoderTypeSystem.CoderTypeRegistry.getAvailableTypes();
+                status.append("  Available Types: ").append(types.length).append("\n");
+                for (String type : types) {
+                    status.append("    - ").append(type).append("\n");
+                }
+            }
+            
+            return status.toString();
+        }
+    }
+    
+    // ==================== SOFT INTEGRATION HOOKS ====================
+    
+    /**
+     * Soft integration hooks that can be called from existing code without modification\n     */
+    public static class SoftIntegrationHooks {
+        
+        /**
+         * Hook for "All Coders" button in Reconstructed Coder group
+         * This can be called from existing button handlers
+         */
+        public static void handleAllCodersAction(Component parentComponent) {
+            if (!ENABLE_THORX6_CODER_TYPE_SYSTEM) {
+                // Fallback to existing behavior
+                return;
+            }
+            
+            Frame parentFrame = null;
+            if (parentComponent != null) {
+                Window window = SwingUtilities.getWindowAncestor(parentComponent);
+                if (window instanceof Frame) {
+                    parentFrame = (Frame) window;
+                }
+            }
+            
+            JDialog coderDialog = IntegrationUtils.createThorX6CoderTypeDialog(parentFrame);
+            coderDialog.setVisible(true);
+        }
+        
+        /**
+         * Hook for generating codes with current coder type
+         */
+        public static String generateCodeWithCurrentType() {
+            if (!ENABLE_THORX6_CODER_TYPE_SYSTEM) {
+                return "";
+            }
+            
+            if (ThorX6HorizontalConfig.currentActiveCoder instanceof EnhancedCoderInterface) {
+                return ThorX6HorizontalConfig.currentActiveCoder.generateCode();
+            }
+            
+            return "";
+        }
+        
+        /**
+         * Hook for getting preview with current coder type
+         */
+        public static String getPreviewWithCurrentType() {
+            if (!ENABLE_THORX6_CODER_TYPE_SYSTEM || !ENABLE_THORX6_CODER_TYPE_PREVIEW) {
+                return "";
+            }
+            
+            if (ThorX6HorizontalConfig.currentActiveCoder instanceof EnhancedCoderInterface) {
+                EnhancedCoderInterface enhanced = (EnhancedCoderInterface) ThorX6HorizontalConfig.currentActiveCoder;
+                return enhanced.getPreview();
+            }
+            
+            return "";
+        }
+        
+        /**
+         * Hook for configuration panel creation
+         */
+        public static JPanel getConfigurationPanelForCurrentType() {
+            if (!ENABLE_THORX6_CODER_TYPE_SYSTEM) {
+                return null;
+            }
+            
+            if (ThorX6HorizontalConfig.currentActiveCoder instanceof EnhancedCoderInterface) {
+                return ThorX6HorizontalConfig.currentActiveCoder.getConfigurationPanel();
+            }
+            
+            return null;
+        }
+    }
+    
+    // ==================== COMPATIBILITY LAYER ====================
+    
+    /**
+     * Compatibility layer to ensure existing code continues to work
+     */
+    public static class CompatibilityLayer {
+        
+        /**
+         * Wrapper for existing coder interfaces to make them compatible
+         */
+        public static class LegacyCoderWrapper extends ThorX6CoderTypeSystem.BaseCoderType {
+            private ThorX6HorizontalConfig.CoderInterface legacyCoder;
+            
+            public LegacyCoderWrapper(ThorX6HorizontalConfig.CoderInterface legacyCoder) {
+                super(legacyCoder.getTypeName());
+                this.legacyCoder = legacyCoder;
+            }
+            
+            @Override
+            public String generateCode() {
+                return legacyCoder.generateCode();
+            }
+            
+            @Override
+            public String getPreview() {
+                if (legacyCoder instanceof ThorX6HorizontalConfig.CoderInterface) {
+                    try {
+                        return legacyCoder.getPreview();
+                    } catch (Exception e) {
+                        return generateCode() + " (Legacy)";
+                    }
+                }
+                return generateCode() + " (Legacy)";
+            }
+            
+            @Override
+            public boolean requiresConfiguration() {
+                return legacyCoder instanceof ThorX6HorizontalConfig.CoderInterface;
+            }
+            
+            @Override
+            public JPanel getConfigurationPanel() {
+                if (legacyCoder instanceof ThorX6HorizontalConfig.CoderInterface) {
+                    try {
+                        return legacyCoder.getConfigurationPanel();
+                    } catch (Exception e) {
+                        return null;
+                    }
+                }
+                return null;
+            }
+            
+            @Override
+            public void reset() {
+                try {
+                    legacyCoder.reset();
+                } catch (Exception e) {
+                    // Ignore if not supported
+                }
+            }
+        }
+        
+        /**
+         * Create legacy wrappers for existing coders
+         */
+        public static ThorX6CoderTypeSystem.CoderType[] wrapLegacyCoders(ThorX6HorizontalConfig.CoderInterface[] legacyCoders) {
+            ThorX6CoderTypeSystem.CoderType[] wrappedCoders = new ThorX6CoderTypeSystem.CoderType[legacyCoders.length];
+            
+            for (int i = 0; i < legacyCoders.length; i++) {
+                wrappedCoders[i] = new LegacyCoderWrapper(legacyCoders[i]);
+            }
+            
+            return wrappedCoders;
+        }
+    }
+    
+    // ==================== TESTING UTILITIES ====================
+    
+    /**
+     * Testing utilities for integration verification
+     */
+    public static class IntegrationTesting {
+        
+        /**
+         * Test all integration points
+         */
+        public static void runIntegrationTests() {
+            System.out.println("🧪 Running ThorX6 Coder Type Integration Tests...\n");
+            
+            // Test 1: System availability
+            System.out.println("Test 1: System Availability");
+            boolean systemAvailable = IntegrationUtils.isThorX6CoderTypeSystemAvailable();
+            System.out.println("  Result: " + (systemAvailable ? "✅ PASS" : "❌ FAIL"));
+            
+            // Test 2: Coder creation
+            System.out.println("\nTest 2: Enhanced Coder Creation");
+            ThorX6HorizontalConfig.CoderInterface[] enhancedCoders = ThorX6CoderTypeBridge.createEnhancedCoders();
+            System.out.println("  Created Coders: " + enhancedCoders.length);
+            System.out.println("  Result: " + (enhancedCoders.length > 0 ? "✅ PASS" : "❌ FAIL"));
+            
+            // Test 3: Code generation
+            System.out.println("\nTest 3: Code Generation");
+            if (enhancedCoders.length > 0) {
+                String generatedCode = enhancedCoders[0].generateCode();
+                System.out.println("  Sample Code: " + generatedCode);
+                System.out.println("  Result: " + (!generatedCode.isEmpty() ? "✅ PASS" : "❌ FAIL"));
+            }
+            
+            // Test 4: Configuration panels
+            System.out.println("\nTest 4: Configuration Panels");
+            int panelCount = 0;
+            for (ThorX6HorizontalConfig.CoderInterface coder : enhancedCoders) {
+                JPanel panel = coder.getConfigurationPanel();
+                if (panel != null) panelCount++;
+            }
+            System.out.println("  Panels Created: " + panelCount + "/" + enhancedCoders.length);
+            System.out.println("  Result: " + (panelCount > 0 ? "✅ PASS" : "❌ FAIL"));
+            
+            // Test 5: Integration status
+            System.out.println("\nTest 5: Integration Status");
+            String status = IntegrationUtils.getIntegrationStatus();
+            System.out.println(status);
+            
+            System.out.println("🏁 Integration Tests Complete!");
+        }
+        
+        /**
+         * Create a test dialog for manual testing
+         */
+        public static JFrame createIntegrationTestFrame() {
+            JFrame frame = new JFrame("ThorX6 Coder Type Integration Test");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setLayout(new BorderLayout());
+            
+            JTextArea statusArea = new JTextArea(20, 60);
+            statusArea.setEditable(false);
+            statusArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            statusArea.setText(IntegrationUtils.getIntegrationStatus());
+            
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            
+            JButton testButton = new JButton("Run Integration Tests");
+            testButton.addActionListener(e -> {
+                statusArea.setText("");
+                // Redirect System.out to the text area temporarily
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                java.io.PrintStream ps = new java.io.PrintStream(baos);
+                java.io.PrintStream old = System.out;
+                System.setOut(ps);
+                
+                runIntegrationTests();
+                
+                System.out.flush();
+                System.setOut(old);
+                statusArea.setText(baos.toString());
+            });
+            
+            JButton coderDialogButton = new JButton("Open Coder Dialog");
+            coderDialogButton.addActionListener(e -> SoftIntegrationHooks.handleAllCodersAction(frame));
+            
+            buttonPanel.add(testButton);
+            buttonPanel.add(coderDialogButton);
+            
+            frame.add(new JScrollPane(statusArea), BorderLayout.CENTER);
+            frame.add(buttonPanel, BorderLayout.SOUTH);
+            
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            
+            return frame;
+        }
+    }
+}

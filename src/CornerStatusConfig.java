@@ -24,7 +24,8 @@ public class CornerStatusConfig {
     public static final boolean AUTO_INCREMENT_COUNTERS = false;     // Auto increment on actions (future feature)
     
     // Coordinate Display Configuration (Soft Coded)
-    public static final String COORDINATE_FORMAT = "%.2f";           // Coordinate decimal format
+    public static final String COORDINATE_FORMAT = RugrelDropdownConfig.ENABLE_POINTWISE_COORDINATES ? 
+                                                    RugrelDropdownConfig.POINTWISE_COORDINATE_FORMAT : "%.2f"; // Use pointwise format if enabled
     public static final boolean SHOW_COORDINATE_LABELS = true;       // Show "X:" and "Y:" labels
     public static final boolean REAL_TIME_TRACKING = true;          // Real-time coordinate updates
     

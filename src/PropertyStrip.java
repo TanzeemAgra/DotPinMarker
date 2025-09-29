@@ -236,6 +236,19 @@ public class PropertyStrip extends JPanel {
         }
     }
     
+    /**
+     * Update cursor coordinates display with pointwise coordinates (0-10 scale)
+     */
+    public void updateCursorCoordinates(double x, double y) {
+        if (ENABLE_CURSOR_TRACKING && cursorXLabel != null && cursorYLabel != null) {
+            SwingUtilities.invokeLater(() -> {
+                // Use RugrelDropdownConfig formatting for consistent display
+                cursorXLabel.setText("X: " + String.format(RugrelDropdownConfig.POINTWISE_COORDINATE_FORMAT, x));
+                cursorYLabel.setText("Y: " + String.format(RugrelDropdownConfig.POINTWISE_COORDINATE_FORMAT, y));
+            });
+        }
+    }
+    
     // ===============================================================================
     // PRINT COUNT PERSISTENCE METHODS
     // ===============================================================================

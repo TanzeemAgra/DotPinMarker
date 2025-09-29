@@ -1,0 +1,835 @@
+import javax.swing.*;
+import java.awt.*;
+import java.util.Map;
+
+/**
+ * ThorX6 Coder Type System - Comprehensive Test Suite
+ * 
+ * This class provides comprehensive testing for the ThorX6 Coder Type system.
+ * It includes unit tests, integration tests, GUI tests, and demonstration capabilities.
+ * 
+ * Test Categories:
+ * - Unit Tests: Individual coder type functionality
+ * - Integration Tests: System integration with existing codebase
+ * - GUI Tests: User interface and real-time preview functionality
+ * - Performance Tests: Response time and resource usage
+ * - Compatibility Tests: Backward compatibility verification
+ */
+public class ThorX6CoderTypeTests {
+    
+    private static int testsPassed = 0;
+    private static int testsFailed = 0;
+    private static StringBuilder testResults = new StringBuilder();
+    
+    // ==================== TEST UTILITIES ====================
+    
+    /**
+     * Test assertion utility
+     */
+    private static void assertTrue(String testName, boolean condition, String message) {
+        if (condition) {
+            testsPassed++;
+            testResults.append("✅ PASS: ").append(testName).append("\n");
+        } else {
+            testsFailed++;
+            testResults.append("❌ FAIL: ").append(testName).append(" - ").append(message).append("\n");
+        }
+    }
+    
+    /**
+     * Test assertion for non-null values
+     */
+    private static void assertNotNull(String testName, Object value, String message) {
+        assertTrue(testName, value != null, message);
+    }
+    
+    /**
+     * Test assertion for string content
+     */
+    private static void assertNotEmpty(String testName, String value, String message) {
+        assertTrue(testName, value != null && !value.trim().isEmpty(), message);
+    }
+    
+    /**
+     * Start a test category
+     */
+    private static void startTestCategory(String categoryName) {
+        testResults.append("\n🧪 ").append(categoryName).append("\n");
+        testResults.append("═".repeat(50)).append("\n");
+    }
+    
+    // ==================== UNIT TESTS ====================
+    
+    /**
+     * Test all individual coder types
+     */
+    public static void runUnitTests() {
+        startTestCategory("UNIT TESTS - Individual Coder Types");
+        
+        testNoCodeCoder();
+        testSerialNumberCoder();
+        testVINCoder();
+        testDateTimeCoder();
+        testRandomNumberCoder();
+    }
+    
+    /**
+     * Test No Code Coder
+     */
+    private static void testNoCodeCoder() {
+        try {
+            ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("No Code");
+            assertNotNull("NoCodeCoder Creation", coder, "Failed to create No Code coder");
+            
+            // Test default behavior
+            String defaultCode = coder.generateCode();
+            testResults.append("  Default Code: '").append(defaultCode).append("'\n");
+            
+            // Test configuration
+            assertTrue("NoCodeCoder Requires Config", coder.requiresConfiguration(), "Should require configuration");
+            
+            JPanel configPanel = coder.getConfigurationPanel();
+            assertNotNull("NoCodeCoder Config Panel", configPanel, "Configuration panel should not be null");
+            
+            // Test preview
+            String preview = coder.getPreview();
+            assertNotNull("NoCodeCoder Preview", preview, "Preview should not be null");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: NoCodeCoder Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test Serial Number Coder
+     */
+    private static void testSerialNumberCoder() {
+        try {
+            ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("Serial Number");
+            assertNotNull("SerialNumberCoder Creation", coder, "Failed to create Serial Number coder");
+            
+            // Test code generation sequence
+            String code1 = coder.generateCode();
+            String code2 = coder.generateCode();
+            String code3 = coder.generateCode();
+            
+            assertNotEmpty("SerialNumberCoder Code1", code1, "First code should not be empty");
+            assertNotEmpty("SerialNumberCoder Code2", code2, "Second code should not be empty");
+            assertNotEmpty("SerialNumberCoder Code3", code3, "Third code should not be empty");
+            
+            testResults.append("  Generated sequence: ").append(code1).append(" → ").append(code2).append(" → ").append(code3).append("\n");
+            
+            // Test numeric increment (codes should be different if step > 0)
+            assertTrue("SerialNumberCoder Increment", !code1.equals(code2) || !code2.equals(code3), 
+                      "Serial numbers should increment");
+            
+            // Test reset
+            coder.reset();
+            String resetCode = coder.generateCode();
+            testResults.append("  After reset: ").append(resetCode).append("\n");
+            
+            // Test preview
+            String preview = coder.getPreview();
+            assertNotEmpty("SerialNumberCoder Preview", preview, "Preview should not be empty");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: SerialNumberCoder Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test VIN Coder
+     */
+    private static void testVINCoder() {
+        try {
+            ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("VIN");
+            assertNotNull("VINCoder Creation", coder, "Failed to create VIN coder");
+            
+            // Test VIN format (should be 17 characters)
+            String vin1 = coder.generateCode();
+            String vin2 = coder.generateCode();
+            
+            assertTrue("VINCoder Length", vin1.length() == 17, "VIN should be 17 characters, got " + vin1.length());
+            assertTrue("VINCoder Uniqueness", !vin1.equals(vin2), "VINs should be unique");
+            
+            testResults.append("  Generated VINs: ").append(vin1).append(", ").append(vin2).append("\n");
+            
+            // Test for excluded characters (I, O, Q should not appear)
+            boolean hasExcludedChars = vin1.contains("I") || vin1.contains("O") || vin1.contains("Q");
+            assertTrue("VINCoder No Excluded Chars", !hasExcludedChars, "VIN should not contain I, O, or Q");
+            
+            String preview = coder.getPreview();
+            assertNotEmpty("VINCoder Preview", preview, "Preview should not be empty");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: VINCoder Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test Date/Time Coder
+     */
+    private static void testDateTimeCoder() {
+        try {
+            ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("Date/Time");
+            assertNotNull("DateTimeCoder Creation", coder, "Failed to create Date/Time coder");
+            
+            // Test date/time generation
+            String dateTime1 = coder.generateCode();
+            Thread.sleep(100); // Small delay
+            String dateTime2 = coder.generateCode();
+            
+            assertNotEmpty("DateTimeCoder Code1", dateTime1, "First date/time should not be empty");
+            assertNotEmpty("DateTimeCoder Code2", dateTime2, "Second date/time should not be empty");
+            
+            testResults.append("  Generated dates: ").append(dateTime1).append(", ").append(dateTime2).append("\n");
+            
+            // Test that format is consistent (should be numeric for default YYMMDD)
+            boolean isNumeric = dateTime1.matches("\\d+");
+            assertTrue("DateTimeCoder Numeric Format", isNumeric, "Default format should be numeric");
+            
+            String preview = coder.getPreview();
+            assertNotEmpty("DateTimeCoder Preview", preview, "Preview should not be empty");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: DateTimeCoder Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test Random Number Coder
+     */
+    private static void testRandomNumberCoder() {
+        try {
+            ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("Random Number");
+            assertNotNull("RandomNumberCoder Creation", coder, "Failed to create Random Number coder");
+            
+            // Test random number generation
+            String random1 = coder.generateCode();
+            String random2 = coder.generateCode();
+            String random3 = coder.generateCode();
+            
+            assertNotEmpty("RandomNumberCoder Code1", random1, "First random should not be empty");
+            assertNotEmpty("RandomNumberCoder Code2", random2, "Second random should not be empty");
+            assertNotEmpty("RandomNumberCoder Code3", random3, "Third random should not be empty");
+            
+            testResults.append("  Generated randoms: ").append(random1).append(", ").append(random2).append(", ").append(random3).append("\n");
+            
+            // Test that numbers are actually random (at least one should be different)
+            boolean hasVariation = !random1.equals(random2) || !random2.equals(random3) || !random1.equals(random3);
+            assertTrue("RandomNumberCoder Variation", hasVariation, "Random numbers should show variation");
+            
+            // Test numeric format
+            boolean isNumeric = random1.matches("\\d+") && random2.matches("\\d+") && random3.matches("\\d+");
+            assertTrue("RandomNumberCoder Numeric", isNumeric, "Random numbers should be numeric");
+            
+            String preview = coder.getPreview();
+            assertNotEmpty("RandomNumberCoder Preview", preview, "Preview should not be empty");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: RandomNumberCoder Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    // ==================== INTEGRATION TESTS ====================
+    
+    /**
+     * Test system integration
+     */
+    public static void runIntegrationTests() {
+        startTestCategory("INTEGRATION TESTS - System Integration");
+        
+        testCoderRegistry();
+        testCoderManager();
+        testIntegrationBridge();
+        testCompatibilityLayer();
+    }
+    
+    /**
+     * Test Coder Registry
+     */
+    private static void testCoderRegistry() {
+        try {
+            String[] availableTypes = ThorX6CoderTypeSystem.CoderTypeRegistry.getAvailableTypes();
+            assertNotNull("Registry Available Types", availableTypes, "Available types should not be null");
+            assertTrue("Registry Type Count", availableTypes.length >= 5, "Should have at least 5 coder types");
+            
+            testResults.append("  Available types: ").append(availableTypes.length).append("\n");
+            for (String type : availableTypes) {
+                testResults.append("    - ").append(type).append("\n");
+            }
+            
+            // Test getting each coder type
+            for (String type : availableTypes) {
+                ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType(type);
+                assertNotNull("Registry Get " + type, coder, "Should be able to get " + type + " coder");
+            }
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: CoderRegistry Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test Coder Manager
+     */
+    private static void testCoderManager() {
+        try {
+            ThorX6CoderTypeSystem.CoderTypeManager manager = new ThorX6CoderTypeSystem.CoderTypeManager();
+            assertNotNull("Manager Creation", manager, "Manager should not be null");
+            
+            // Test initial state
+            String initialType = manager.getCurrentTypeName();
+            assertNotEmpty("Manager Initial Type", initialType, "Should have initial type");
+            
+            ThorX6CoderTypeSystem.CoderType initialCoder = manager.getCurrentCoderType();
+            assertNotNull("Manager Initial Coder", initialCoder, "Should have initial coder");
+            
+            // Test type switching
+            manager.setCoderType("Serial Number");
+            String newType = manager.getCurrentTypeName();
+            assertTrue("Manager Type Switch", "Serial Number".equals(newType), "Should switch to Serial Number");
+            
+            // Test code generation through manager
+            String generatedCode = manager.generateCode();
+            assertNotEmpty("Manager Generate Code", generatedCode, "Should generate code");
+            
+            // Test preview
+            String preview = manager.getCurrentPreview();
+            assertNotEmpty("Manager Preview", preview, "Should have preview");
+            
+            testResults.append("  Manager test completed successfully\n");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: CoderManager Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test Integration Bridge
+     */
+    private static void testIntegrationBridge() {
+        try {
+            // Test enhanced coder creation
+            ThorX6HorizontalConfig.CoderInterface[] enhancedCoders = 
+                ThorX6CoderTypeIntegration.ThorX6CoderTypeBridge.createEnhancedCoders();
+            
+            assertNotNull("Bridge Enhanced Coders", enhancedCoders, "Enhanced coders should not be null");
+            assertTrue("Bridge Coder Count", enhancedCoders.length >= 5, "Should have at least 5 enhanced coders");
+            
+            testResults.append("  Enhanced coders created: ").append(enhancedCoders.length).append("\n");
+            
+            // Test each enhanced coder
+            for (ThorX6HorizontalConfig.CoderInterface coder : enhancedCoders) {
+                assertNotNull("Bridge Coder Instance", coder, "Each coder should not be null");
+                assertNotEmpty("Bridge Coder Type", coder.getTypeName(), "Each coder should have a type name");
+                
+                String code = coder.generateCode();
+                assertNotNull("Bridge Generate Code", code, "Should generate code");
+                
+                testResults.append("    ").append(coder.getTypeName()).append(": ").append(code).append("\n");
+            }
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: IntegrationBridge Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test Compatibility Layer
+     */
+    private static void testCompatibilityLayer() {
+        try {
+            // Create mock legacy coders for testing
+            ThorX6HorizontalConfig.CoderInterface[] mockLegacyCoders = createMockLegacyCoders();
+            
+            // Test legacy wrapper
+            ThorX6CoderTypeSystem.CoderType[] wrappedCoders = 
+                ThorX6CoderTypeIntegration.CompatibilityLayer.wrapLegacyCoders(mockLegacyCoders);
+            
+            assertNotNull("Compatibility Wrapped Coders", wrappedCoders, "Wrapped coders should not be null");
+            assertTrue("Compatibility Coder Count", wrappedCoders.length == mockLegacyCoders.length, 
+                      "Should wrap all legacy coders");
+            
+            // Test wrapped coder functionality
+            for (ThorX6CoderTypeSystem.CoderType wrappedCoder : wrappedCoders) {
+                assertNotNull("Compatibility Wrapped Instance", wrappedCoder, "Wrapped coder should not be null");
+                assertNotEmpty("Compatibility Type Name", wrappedCoder.getTypeName(), "Should have type name");
+                
+                String code = wrappedCoder.generateCode();
+                assertNotNull("Compatibility Generate", code, "Should generate code");
+            }
+            
+            testResults.append("  Compatibility layer test completed successfully\n");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: CompatibilityLayer Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Create mock legacy coders for testing
+     */
+    private static ThorX6HorizontalConfig.CoderInterface[] createMockLegacyCoders() {
+        return new ThorX6HorizontalConfig.CoderInterface[] {
+            new MockLegacyCoder("Mock Coder 1"),
+            new MockLegacyCoder("Mock Coder 2")
+        };
+    }
+    
+    /**
+     * Mock legacy coder for testing
+     */
+    private static class MockLegacyCoder implements ThorX6HorizontalConfig.CoderInterface {
+        private String typeName;
+        
+        public MockLegacyCoder(String typeName) {
+            this.typeName = typeName;
+        }
+        
+        @Override
+        public String getTypeName() { return typeName; }
+        
+        @Override
+        public String generateCode() { return "MOCK" + System.currentTimeMillis() % 1000; }
+        
+        @Override
+        public JPanel getConfigurationPanel() { return new JPanel(); }
+        
+        @Override
+        public void configure() { }
+        
+        @Override
+        public boolean isConfigured() { return true; }
+        
+        @Override
+        public String getPreview() { return "Mock Preview"; }
+        
+        @Override
+        public void reset() { }
+    }
+    
+    // ==================== GUI TESTS ====================
+    
+    /**
+     * Test GUI components
+     */
+    public static void runGUITests() {
+        startTestCategory("GUI TESTS - User Interface Components");
+        
+        testGUICreation();
+        testGUIComponents();
+        testPreviewFunctionality();
+    }
+    
+    /**
+     * Test GUI creation
+     */
+    private static void testGUICreation() {
+        try {
+            ThorX6CoderTypeGUI gui = new ThorX6CoderTypeGUI();
+            assertNotNull("GUI Creation", gui, "GUI should be created successfully");
+            
+            // Test GUI components exist
+            assertTrue("GUI Is Panel", gui instanceof JPanel, "GUI should be a JPanel");
+            assertTrue("GUI Has Components", gui.getComponentCount() > 0, "GUI should have components");
+            
+            testResults.append("  GUI created with ").append(gui.getComponentCount()).append(" components\n");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: GUI Creation Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test GUI components
+     */
+    private static void testGUIComponents() {
+        try {
+            ThorX6CoderTypeGUI gui = new ThorX6CoderTypeGUI();
+            
+            // Test coder manager
+            ThorX6CoderTypeSystem.CoderTypeManager manager = gui.getCoderManager();
+            assertNotNull("GUI Manager", manager, "GUI should have coder manager");
+            
+            // Test code generation through GUI
+            String code = gui.generateCode();
+            assertNotNull("GUI Generate Code", code, "GUI should generate code");
+            
+            // Test preview
+            String preview = gui.getCurrentPreview();
+            assertNotNull("GUI Preview", preview, "GUI should have preview");
+            
+            // Test coder type setting
+            gui.setCoderType("Serial Number");
+            String currentType = gui.getCoderManager().getCurrentTypeName();
+            assertTrue("GUI Set Type", "Serial Number".equals(currentType), "Should set coder type");
+            
+            testResults.append("  GUI components test completed successfully\n");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: GUI Components Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test preview functionality
+     */
+    private static void testPreviewFunctionality() {
+        try {
+            ThorX6CoderTypeGUI gui = new ThorX6CoderTypeGUI();
+            
+            // Test preview for different coder types
+            String[] coderTypes = {"No Code", "Serial Number", "VIN", "Date/Time", "Random Number"};
+            
+            for (String type : coderTypes) {
+                gui.setCoderType(type);
+                String preview = gui.getCurrentPreview();
+                assertNotEmpty("Preview " + type, preview, "Should have preview for " + type);
+                testResults.append("    ").append(type).append(" preview: ").append(preview).append("\n");
+            }
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: Preview Functionality Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    // ==================== PERFORMANCE TESTS ====================
+    
+    /**
+     * Test performance characteristics
+     */
+    public static void runPerformanceTests() {
+        startTestCategory("PERFORMANCE TESTS - Response Time & Resource Usage");
+        
+        testCodeGenerationPerformance();
+        testGUIResponseTime();
+        testMemoryUsage();
+    }
+    
+    /**
+     * Test code generation performance
+     */
+    private static void testCodeGenerationPerformance() {
+        try {
+            String[] coderTypes = {"Serial Number", "VIN", "Date/Time", "Random Number"};
+            int iterations = 1000;
+            
+            for (String type : coderTypes) {
+                ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType(type);
+                
+                long startTime = System.nanoTime();
+                for (int i = 0; i < iterations; i++) {
+                    coder.generateCode();
+                }
+                long endTime = System.nanoTime();
+                
+                double avgTimeMs = (endTime - startTime) / 1_000_000.0 / iterations;
+                testResults.append("  ").append(type).append(": ").append(String.format("%.3f", avgTimeMs)).append(" ms/generation\n");
+                
+                assertTrue("Performance " + type, avgTimeMs < 1.0, "Should generate in less than 1ms");
+            }
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: Performance Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test GUI response time
+     */
+    private static void testGUIResponseTime() {
+        try {
+            ThorX6CoderTypeGUI gui = new ThorX6CoderTypeGUI();
+            
+            // Test type switching time
+            String[] types = {"No Code", "Serial Number", "VIN", "Date/Time", "Random Number"};
+            
+            long totalTime = 0;
+            for (String type : types) {
+                long startTime = System.nanoTime();
+                gui.setCoderType(type);
+                long endTime = System.nanoTime();
+                totalTime += (endTime - startTime);
+            }
+            
+            double avgSwitchTime = totalTime / 1_000_000.0 / types.length;
+            testResults.append("  Type switching: ").append(String.format("%.2f", avgSwitchTime)).append(" ms average\n");
+            
+            assertTrue("GUI Response Time", avgSwitchTime < 10.0, "Type switching should be under 10ms");
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: GUI Response Time Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    /**
+     * Test memory usage
+     */
+    private static void testMemoryUsage() {
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            
+            // Measure memory before
+            runtime.gc();
+            long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
+            
+            // Create multiple GUI instances
+            ThorX6CoderTypeGUI[] guis = new ThorX6CoderTypeGUI[10];
+            for (int i = 0; i < guis.length; i++) {
+                guis[i] = new ThorX6CoderTypeGUI();
+            }
+            
+            // Measure memory after
+            runtime.gc();
+            long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
+            
+            long memoryUsed = memoryAfter - memoryBefore;
+            double memoryPerGUI = memoryUsed / 1024.0 / 1024.0 / guis.length;
+            
+            testResults.append("  Memory per GUI: ").append(String.format("%.2f", memoryPerGUI)).append(" MB\n");
+            
+            assertTrue("Memory Usage", memoryPerGUI < 10.0, "Each GUI should use less than 10MB");
+            
+            // Cleanup
+            for (ThorX6CoderTypeGUI gui : guis) {
+                gui.dispose();
+            }
+            
+        } catch (Exception e) {
+            testsFailed++;
+            testResults.append("❌ FAIL: Memory Usage Test - Exception: ").append(e.getMessage()).append("\n");
+        }
+    }
+    
+    // ==================== DEMONSTRATION TESTS ====================
+    
+    /**
+     * Run demonstration of all features
+     */
+    public static void runDemonstrationTests() {
+        startTestCategory("DEMONSTRATION - Feature Showcase");
+        
+        demonstrateCoderTypes();
+        demonstrateSerialNumberConfiguration();
+        demonstrateVINGeneration();
+        demonstrateDateTimeFormats();
+        demonstrateRandomNumberModes();
+    }
+    
+    /**
+     * Demonstrate all coder types
+     */
+    private static void demonstrateCoderTypes() {
+        testResults.append("\n📋 All Coder Types Demonstration:\n");
+        
+        String[] types = ThorX6CoderTypeSystem.CoderTypeRegistry.getAvailableTypes();
+        for (String type : types) {
+            ThorX6CoderTypeSystem.CoderType coder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType(type);
+            testResults.append("  ").append(type).append(":\n");
+            testResults.append("    Example: ").append(coder.generateCode()).append("\n");
+            testResults.append("    Preview: ").append(coder.getPreview()).append("\n");
+            testResults.append("    Config Required: ").append(coder.requiresConfiguration()).append("\n\n");
+        }
+    }
+    
+    /**
+     * Demonstrate Serial Number configuration
+     */
+    private static void demonstrateSerialNumberConfiguration() {
+        testResults.append("🔢 Serial Number Configuration Demo:\n");
+        
+        ThorX6CoderTypeSystem.CoderType serialCoder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("Serial Number");
+        
+        // Show default sequence
+        testResults.append("  Default sequence: ");
+        for (int i = 0; i < 5; i++) {
+            testResults.append(serialCoder.generateCode()).append(" ");
+        }
+        testResults.append("\n");
+        
+        // Reset and show again
+        serialCoder.reset();
+        testResults.append("  After reset: ");
+        for (int i = 0; i < 3; i++) {
+            testResults.append(serialCoder.generateCode()).append(" ");
+        }
+        testResults.append("\n\n");
+    }
+    
+    /**
+     * Demonstrate VIN generation
+     */
+    private static void demonstrateVINGeneration() {
+        testResults.append("🚗 VIN Generation Demo:\n");
+        
+        ThorX6CoderTypeSystem.CoderType vinCoder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("VIN");
+        
+        testResults.append("  Sample VINs:\n");
+        for (int i = 0; i < 5; i++) {
+            String vin = vinCoder.generateCode();
+            testResults.append("    ").append(vin).append(" (Length: ").append(vin.length()).append(")\n");
+        }
+        testResults.append("\n");
+    }
+    
+    /**
+     * Demonstrate Date/Time formats
+     */
+    private static void demonstrateDateTimeFormats() {
+        testResults.append("📅 Date/Time Formats Demo:\n");
+        
+        ThorX6CoderTypeSystem.CoderType dateCoder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("Date/Time");
+        
+        // Note: This demo shows current format, real demo would show all formats
+        testResults.append("  Current format: ").append(dateCoder.generateCode()).append("\n");
+        testResults.append("  Preview: ").append(dateCoder.getPreview()).append("\n\n");
+    }
+    
+    /**
+     * Demonstrate Random Number modes
+     */
+    private static void demonstrateRandomNumberModes() {
+        testResults.append("🎲 Random Number Modes Demo:\n");
+        
+        ThorX6CoderTypeSystem.CoderType randomCoder = ThorX6CoderTypeSystem.CoderTypeRegistry.getCoderType("Random Number");
+        
+        testResults.append("  Sample random numbers: ");
+        for (int i = 0; i < 10; i++) {
+            testResults.append(randomCoder.generateCode()).append(" ");
+        }
+        testResults.append("\n\n");
+    }
+    
+    // ==================== MAIN TEST RUNNER ====================
+    
+    /**
+     * Run all tests
+     */
+    public static String runAllTests() {
+        testsPassed = 0;
+        testsFailed = 0;
+        testResults = new StringBuilder();
+        
+        testResults.append("🚀 ThorX6 Coder Type System - Comprehensive Test Suite\n");
+        testResults.append("=".repeat(60)).append("\n");
+        
+        long startTime = System.currentTimeMillis();
+        
+        runUnitTests();
+        runIntegrationTests();
+        runGUITests();
+        runPerformanceTests();
+        runDemonstrationTests();
+        
+        long endTime = System.currentTimeMillis();
+        double totalTime = (endTime - startTime) / 1000.0;
+        
+        // Summary
+        testResults.append("\n🏁 TEST SUMMARY\n");
+        testResults.append("=".repeat(30)).append("\n");
+        testResults.append("Tests Passed: ").append(testsPassed).append("\n");
+        testResults.append("Tests Failed: ").append(testsFailed).append("\n");
+        testResults.append("Total Tests: ").append(testsPassed + testsFailed).append("\n");
+        testResults.append("Success Rate: ").append(String.format("%.1f", (double)testsPassed / (testsPassed + testsFailed) * 100)).append("%\n");
+        testResults.append("Execution Time: ").append(String.format("%.2f", totalTime)).append(" seconds\n");
+        
+        if (testsFailed == 0) {
+            testResults.append("\n✅ ALL TESTS PASSED! System is ready for production.\n");
+        } else {
+            testResults.append("\n⚠️ Some tests failed. Please review and fix issues.\n");
+        }
+        
+        return testResults.toString();
+    }
+    
+    /**
+     * Create test GUI window
+     */
+    public static JFrame createTestWindow() {
+        JFrame frame = new JFrame("ThorX6 Coder Type System - Test Suite");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
+        
+        JTextArea resultArea = new JTextArea(30, 80);
+        resultArea.setEditable(false);
+        resultArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+        
+        JScrollPane scrollPane = new JScrollPane(resultArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        
+        JButton runTestsButton = new JButton("Run All Tests");
+        runTestsButton.addActionListener(e -> {
+            resultArea.setText("Running tests...\n");
+            resultArea.repaint();
+            
+            SwingUtilities.invokeLater(() -> {
+                String results = runAllTests();
+                resultArea.setText(results);
+                resultArea.setCaretPosition(0);
+            });
+        });
+        
+        JButton demoButton = new JButton("Open Demo GUI");
+        demoButton.addActionListener(e -> {
+            JFrame demoFrame = ThorX6CoderTypeGUI.createTestWindow();
+            demoFrame.setVisible(true);
+        });
+        
+        JButton integrationButton = new JButton("Integration Test");
+        integrationButton.addActionListener(e -> {
+            JFrame integrationFrame = ThorX6CoderTypeIntegration.IntegrationTesting.createIntegrationTestFrame();
+            integrationFrame.setVisible(true);
+        });
+        
+        buttonPanel.add(runTestsButton);
+        buttonPanel.add(demoButton);
+        buttonPanel.add(integrationButton);
+        
+        frame.add(scrollPane, BorderLayout.CENTER);
+        frame.add(buttonPanel, BorderLayout.SOUTH);
+        
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        
+        return frame;
+    }
+    
+    /**
+     * Main method for standalone testing
+     */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeel());
+            } catch (Exception e) {
+                // Use default look and feel
+            }
+            
+            if (args.length > 0 && "console".equals(args[0])) {
+                // Console mode
+                System.out.println(runAllTests());
+            } else {
+                // GUI mode
+                JFrame testFrame = createTestWindow();
+                testFrame.setVisible(true);
+            }
+        });
+    }
+}

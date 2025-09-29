@@ -390,6 +390,14 @@ public class DotMatrixMark extends Mark {
     
     @Override
     public void resizeTo(int mx, int my) {
+        // Check lock size flag before allowing resize
+        if (lockSize && RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("DotMatrixMark resizeTo blocked: Size is locked");
+            }
+            return;
+        }
+        
         if (resizing) {
             // Maintain aspect ratio and minimum size for proper matrix display
             int newWidth = Math.max(80, mx - x);

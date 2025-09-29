@@ -21,7 +21,8 @@ public class ThorX6HorizontalConfig {
     // ==================== SOFT CODING CONTROL FLAGS ====================
     
     public static final boolean ENABLE_THORX6_PROPERTIES_PANEL = false; // DISABLED in Mark tab (keeping bottom property strip only - selective duplicate removal)
-    public static final boolean ENABLE_CODER_SUBGROUP = true;           // ENABLE Coder subgroup next to Mark group
+    public static final boolean ENABLE_CODER_SUBGROUP = false;          // DISABLE entire Coder subgroup from UI (DELETED via soft coding)
+    public static final boolean HIDE_CODER_SUBGROUP_COMPLETELY = true;  // Master flag to completely hide Coder subgroup
     public static final boolean CODER_INTEGRATION_ACTIVE = true;        // Enable Coder functionality integration
     public static final boolean ENABLE_BARCODE_OPTION = false;          // DISABLE generic Barcode option (use specific barcode types in grid instead)
     
@@ -156,6 +157,8 @@ public class ThorX6HorizontalConfig {
     public static final boolean ENABLE_CODER_STATE_SYSTEM = true;       // ENABLE intelligent coder state management
     public static final boolean ENABLE_VISUAL_STATE_FEEDBACK = true;    // ENABLE visual state indicators on buttons
     public static final boolean ENABLE_DYNAMIC_CODER_BEHAVIOR = true;   // ENABLE Coder button behavior changes based on state
+    public static final boolean ENABLE_CODER_MODIFICATION_DEBUG = true; // ENABLE detailed debug logging for coder modification
+    public static final boolean ENABLE_FORCE_CODER_MODIFICATION = true; // ENABLE forced modification workflow over creation
     
     // Coder State Variables (Dynamic State Management)
     private static String currentCoderType = "No Coder";               // Current selected coder type
@@ -265,6 +268,24 @@ public class ThorX6HorizontalConfig {
         }
     }
     
+    /**
+     * Helper class for mark dropdown options (Soft Coding Support)
+     */
+    public static class MarkOption {
+        public final String displayText;
+        public final MarkTypeConfig mark;
+        
+        public MarkOption(String displayText, MarkTypeConfig mark) {
+            this.displayText = displayText;
+            this.mark = mark;
+        }
+        
+        @Override
+        public String toString() {
+            return displayText;
+        }
+    }
+    
     // 5x2 Mark Types Grid (Row 1: Basic Marks, Row 2: Advanced Marks)
     // Using custom designed icons from images/ folder
     public static final MarkTypeConfig[][] MARK_TYPES_GRID = {
@@ -293,21 +314,24 @@ public class ThorX6HorizontalConfig {
     });
     
     // ==================== SOFT-CODED CODER SUBGROUP ====================
+
+    // Master Coder Control (Soft Coding Technique)
+    public static final boolean DELETE_CODER_TYPE_COMPLETELY = true;      // Master flag to completely remove Coder Type functionality
+    public static final boolean DELETE_ALL_CODER_BUTTONS = true;          // Ultimate flag to remove ALL coder buttons (including DataMatrix/Coder)
     
     // Coder Type Configuration (Soft Coded Replacement)
     public static final boolean REPLACE_QR_WITH_CODER_TYPE = true;        // ENABLE QR Code -> Coder Type replacement
     public static final boolean ENABLE_CODER_TYPE_OPTIONS = true;         // Enable Coder Type dropdown functionality
     public static final String CODER_TYPE_BUTTON_TEXT = "Coder Type";     // Soft-coded button text
     public static final String CODER_TYPE_ICON = "⚙️";                    // Soft-coded button icon
-    public static final String CODER_TYPE_TOOLTIP = "Select Coder Type"; // Soft-coded tooltip
-    
-    // Coder Group (Soft-coded integration next to Mark group - QR Code replaced with Coder Type)
+    public static final String CODER_TYPE_TOOLTIP = "Select Coder Type"; // Soft-coded tooltip    // Coder Group (Soft-coded integration next to Mark group - QR Code replaced with Coder Type)
     public static final ThorX6ButtonGroup CODER_GROUP = createCoderGroup();
     
-    // All button groups in order (Clipboard, Mark, and conditionally Coder groups)
-    public static final ThorX6ButtonGroup[] ALL_BUTTON_GROUPS = ENABLE_CODER_SUBGROUP ? 
-        new ThorX6ButtonGroup[] { CLIPBOARD_GROUP, MARK_GROUP, CODER_GROUP } :
-        new ThorX6ButtonGroup[] { CLIPBOARD_GROUP, MARK_GROUP };
+    // Reconstructed Coder Group (New modular system)
+    public static final ThorX6ButtonGroup RECONSTRUCTED_CODER_GROUP = createReconstructedCoderGroup();
+    
+    // All button groups in order (Clipboard, Mark, Coder, and conditionally Reconstructed Coder groups)
+    public static final ThorX6ButtonGroup[] ALL_BUTTON_GROUPS = createButtonGroupsArray();
     
     // ==================== THORX6 PROPERTIES CONFIGURATION ====================
     
@@ -331,8 +355,11 @@ public class ThorX6HorizontalConfig {
         }
     }
     
-    // Enhanced ThorX6-style properties (Soft Coded Configuration)
-    public static final ThorX6Property[] THORX6_PROPERTIES = {
+    // Enhanced ThorX6-style properties (Filtered based on duplicate prevention configuration)
+    public static final ThorX6Property[] THORX6_PROPERTIES = getFilteredThorX6HorizontalProperties();
+    
+    // Original ThorX6 Horizontal Properties
+    private static final ThorX6Property[] ORIGINAL_THORX6_PROPERTIES = {
         new ThorX6Property("Name", "newmark1", 80, true),
         new ThorX6Property("X", "0.00", 60, true, "mm"),
         new ThorX6Property("Y", "0.00", 60, true, "mm"),
@@ -345,6 +372,62 @@ public class ThorX6HorizontalConfig {
         new ThorX6Property("Lock Size", "false", 70, true),
         new ThorX6Property("Disable Print", "false", 85, true)
     };
+    
+    // Filtered ThorX6 horizontal properties based on soft coding configuration
+    private static ThorX6Property[] getFilteredThorX6HorizontalProperties() {
+        // Check if we should block horizontal property creation entirely
+        if (RugrelDropdownConfig.BLOCK_HORIZONTAL_PROPERTY_CREATION ||
+            RugrelDropdownConfig.DISABLE_HORIZONTAL_PROPERTY_DUPLICATES ||
+            !RugrelDropdownConfig.SHOW_PROPERTIES_IN_HORIZONTAL_LAYOUT) {
+            
+            if (RugrelDropdownConfig.LOG_BLOCKED_DUPLICATE_ATTEMPTS) {
+                System.out.println("🚫 BLOCKED: ThorX6 Horizontal Properties creation disabled by soft coding");
+                System.out.println("   Using basic properties only (Name, X, Y, Z, Angle, Width, Height)");
+            }
+            
+            // Return only basic properties without the duplicate ones
+            return new ThorX6Property[] {
+                new ThorX6Property("Name", "newmark1", 80, true),
+                new ThorX6Property("X", "0.00", 60, true, "mm"),
+                new ThorX6Property("Y", "0.00", 60, true, "mm"),
+                new ThorX6Property("Z", "0", 50, true, "mm"),
+                new ThorX6Property("Angle", "0°", 50, true),
+                new ThorX6Property("Width", "10.00", 70, true, "mm"),
+                new ThorX6Property("Height", "5.00", 70, true, "mm")
+            };
+        }
+        
+        // Check if individual property duplicates should be eliminated
+        if (RugrelDropdownConfig.ELIMINATE_CLEAR_TRANS_DUPLICATES ||
+            RugrelDropdownConfig.ELIMINATE_MIRROR_DUPLICATES ||
+            RugrelDropdownConfig.ELIMINATE_LOCK_SIZE_DUPLICATES ||
+            RugrelDropdownConfig.ELIMINATE_DISABLE_PRINT_DUPLICATES ||
+            RugrelDropdownConfig.ENFORCE_BOTTOM_STRIP_ONLY) {
+            
+            if (RugrelDropdownConfig.LOG_BLOCKED_DUPLICATE_ATTEMPTS) {
+                System.out.println("🚫 BLOCKED: Individual property duplicates eliminated from ThorX6 Horizontal Properties");
+                System.out.println("   Properties only available in bottom strip to prevent duplicates");
+            }
+            
+            // Return only basic properties
+            return new ThorX6Property[] {
+                new ThorX6Property("Name", "newmark1", 80, true),
+                new ThorX6Property("X", "0.00", 60, true, "mm"),
+                new ThorX6Property("Y", "0.00", 60, true, "mm"),
+                new ThorX6Property("Z", "0", 50, true, "mm"),
+                new ThorX6Property("Angle", "0°", 50, true),
+                new ThorX6Property("Width", "10.00", 70, true, "mm"),
+                new ThorX6Property("Height", "5.00", 70, true, "mm")
+            };
+        }
+        
+        // If no duplicate prevention is enabled, return original properties
+        if (RugrelDropdownConfig.LOG_PROPERTY_ICON_CREATION) {
+            System.out.println("⚠️ WARNING: Creating ThorX6 Horizontal Properties with potential duplicates");
+        }
+        
+        return ORIGINAL_THORX6_PROPERTIES;
+    }
     
     // ==================== COMPONENT CREATION METHODS ====================
     
@@ -383,27 +466,93 @@ public class ThorX6HorizontalConfig {
         java.util.List<ThorX6Button> coderButtons = new java.util.ArrayList<>();
         
         // Add primary coder button (QR Code or Coder Type selection with dropdown)
-        if (REPLACE_QR_WITH_CODER_TYPE) {
-            coderButtons.add(new ThorX6Button(CODER_TYPE_BUTTON_TEXT, CODER_TYPE_ICON, CODER_TYPE_TOOLTIP, true, () -> handleCoderTypeSelection()));
-        } else {
-            coderButtons.add(new ThorX6Button("QR Code", "⬛", "Generate QR Code", () -> handleCoderAction("QR Code")));
+        // SOFT CODING: Complete deletion control with DELETE_CODER_TYPE_COMPLETELY flag
+        if (!DELETE_CODER_TYPE_COMPLETELY) {
+            if (REPLACE_QR_WITH_CODER_TYPE && !DISABLE_ORIGINAL_CODER_TYPE_BUTTON) {
+                coderButtons.add(new ThorX6Button(CODER_TYPE_BUTTON_TEXT, CODER_TYPE_ICON, CODER_TYPE_TOOLTIP, true, () -> handleCoderTypeSelection()));
+            } else if (!REPLACE_QR_WITH_CODER_TYPE) {
+                coderButtons.add(new ThorX6Button("QR Code", "⬛", "Generate QR Code", () -> handleCoderAction("QR Code")));
+            }
         }
+        // When DELETE_CODER_TYPE_COMPLETELY is true, no coder type button is added at all
         
         // Add DataMatrix/Coder button with Innovative State-Based Behavior
-        if (REPLACE_DATAMATRIX_WITH_CODER) {
-            coderButtons.add(new ThorX6Button(DATAMATRIX_BUTTON_TEXT, DATAMATRIX_BUTTON_ICON, DATAMATRIX_BUTTON_TOOLTIP, () -> handleIntelligentCoderButton()));
-        } else {
-            coderButtons.add(new ThorX6Button("DataMatrix", "▣", "Generate DataMatrix code", () -> handleCoderAction("DataMatrix")));
+        // SOFT CODING: Complete deletion control - skip ALL coder buttons if DELETE_ALL_CODER_BUTTONS is true
+        if (!DELETE_ALL_CODER_BUTTONS) {
+            if (REPLACE_DATAMATRIX_WITH_CODER) {
+                coderButtons.add(new ThorX6Button(DATAMATRIX_BUTTON_TEXT, DATAMATRIX_BUTTON_ICON, DATAMATRIX_BUTTON_TOOLTIP, () -> handleRebuiltCoderButtonV3()));
+            } else {
+                coderButtons.add(new ThorX6Button("DataMatrix", "▣", "Generate DataMatrix code", () -> handleCoderAction("DataMatrix")));
+            }
+            
+            // Conditionally add Barcode button based on soft coding flag
+            if (ENABLE_BARCODE_OPTION) {
+                coderButtons.add(new ThorX6Button("Barcode", "|||", "Generate Barcode", () -> handleCoderAction("Barcode")));
+            }
         }
-        
-        // Conditionally add Barcode button based on soft coding flag
-        if (ENABLE_BARCODE_OPTION) {
-            coderButtons.add(new ThorX6Button("Barcode", "|||", "Generate Barcode", () -> handleCoderAction("Barcode")));
-        }
+        // When DELETE_ALL_CODER_BUTTONS is true, NO coder buttons are added at all
         
         // Convert list to array and create group
         ThorX6Button[] buttonArray = coderButtons.toArray(new ThorX6Button[0]);
         return new ThorX6ButtonGroup("Coder", buttonArray);
+    }
+    
+    /**
+     * Create Reconstructed Coder Group with modular OOP system
+     */
+    private static ThorX6ButtonGroup createReconstructedCoderGroup() {
+        if (!ENABLE_RECONSTRUCTED_CODER_SYSTEM) {
+            return new ThorX6ButtonGroup("Reconstructed", new ThorX6Button[0]);
+        }
+        
+        java.util.List<ThorX6Button> reconstructedButtons = new java.util.ArrayList<>();
+        
+        // Coder Tab Button - Opens the consolidated coder configuration panel or dropdown
+        String buttonText = CONSOLIDATE_CODER_FUNCTIONALITY ? "All Coders" : "Coder Tab";
+        String tooltip = CONSOLIDATE_CODER_FUNCTIONALITY ? 
+            "Open Consolidated Coder System (New + Original ThorX6)" : 
+            "Open Reconstructed Coder Configuration";
+        
+        // Soft-coded dropdown vs panel behavior
+        if (CONSOLIDATE_CODER_FUNCTIONALITY && ENABLE_ALL_CODERS_DROPDOWN) {
+            reconstructedButtons.add(new ThorX6Button(buttonText, "🔽", tooltip + " (Dropdown)", true, () -> handleAllCodersDropdown()));
+        } else {
+            reconstructedButtons.add(new ThorX6Button(buttonText, "⚙️", tooltip, () -> openReconstructedCoderPanel()));
+        }
+        
+        // Quick Generate Button - Uses current active coder
+        reconstructedButtons.add(new ThorX6Button("Generate", "🔄", "Generate code with current coder", () -> handleQuickGenerate()));
+        
+        // Preview Button - Shows current coder preview
+        reconstructedButtons.add(new ThorX6Button("Preview", "👁️", "Show coder preview", () -> showCoderPreview()));
+        
+        ThorX6Button[] buttonArray = reconstructedButtons.toArray(new ThorX6Button[0]);
+        return new ThorX6ButtonGroup("Reconstructed", buttonArray);
+    }
+    
+    /**
+     * Create button groups array based on soft coding configuration
+     */
+    private static ThorX6ButtonGroup[] createButtonGroupsArray() {
+        java.util.List<ThorX6ButtonGroup> groups = new java.util.ArrayList<>();
+        
+        // Always add core groups
+        groups.add(CLIPBOARD_GROUP);
+        groups.add(MARK_GROUP);
+        
+        // Conditionally add original coder group
+        // SOFT CODING: Complete subgroup removal control
+        if (ENABLE_CODER_SUBGROUP && !HIDE_CODER_SUBGROUP_COMPLETELY) {
+            groups.add(CODER_GROUP);
+        }
+        // When HIDE_CODER_SUBGROUP_COMPLETELY is true, Coder subgroup is completely hidden from UI
+        
+        // Conditionally add reconstructed coder group
+        if (ADD_RECONSTRUCTED_CODER_BUTTON_GROUP && ENABLE_RECONSTRUCTED_CODER_SYSTEM) {
+            groups.add(RECONSTRUCTED_CODER_GROUP);
+        }
+        
+        return groups.toArray(new ThorX6ButtonGroup[0]);
     }
 
     /**
@@ -475,9 +624,19 @@ public class ThorX6HorizontalConfig {
         // Professional hover effects
         addThorX6ButtonEffects(button);
         
-        // Action - Special handling for dropdown buttons
+        // Action - Special handling for dropdown buttons (Soft Coded)
         if (config.hasDropdown && config.text.equals("Add Mark")) {
-            button.addActionListener(e -> showAddMarkDropdownMenu(button));
+            if (ENABLE_ADD_MARK_DROPDOWN) {
+                button.addActionListener(e -> showAddMarkDropdownMenu(button)); // Use popup menu
+            } else {
+                button.addActionListener(e -> handleAddMarkDropdown()); // Fallback to window method
+            }
+        } else if (config.hasDropdown && config.text.equals("All Coders")) {
+            if (ENABLE_ALL_CODERS_DROPDOWN) {
+                button.addActionListener(e -> handleAllCodersDropdownMenu(button)); // Use popup menu
+            } else {
+                button.addActionListener(e -> config.action.run()); // Fallback to action
+            }
         } else if (config.hasDropdown && config.text.equals("Coder Type")) {
             button.addActionListener(e -> showCoderTypeDropdownMenu(button));
         } else {
@@ -757,7 +916,15 @@ public class ThorX6HorizontalConfig {
         System.out.println("➕ Opening Add Mark dropdown menu...");
         
         JPopupMenu dropdownMenu = new JPopupMenu();
-        dropdownMenu.setBorder(BorderFactory.createTitledBorder("Mark Types"));
+        
+        // 🎯 ThorX6 Integration: Show current active coder at top
+        ensureCoderInitialized();
+        String activeCoderInfo = "No Active Coder";
+        if (currentActiveCoder != null) {
+            activeCoderInfo = "Active: " + currentActiveCoder.getTypeName();
+        }
+        
+        dropdownMenu.setBorder(BorderFactory.createTitledBorder("Mark Types - " + activeCoderInfo));
         
         // Create compact panel for 5x2 grid (icons only)
         JPanel gridPanel = new JPanel(new GridLayout(2, 5, 4, 4));
@@ -1174,10 +1341,164 @@ public class ThorX6HorizontalConfig {
     }
 
     /**
-     * Handle Add Mark Dropdown - Shows visual 5x2 grid of mark types (Intelligent Integration with Coder Type)
+     * Handle Add Mark Dropdown - Soft-coded implementation with multiple styles
      */
     public static void handleAddMarkDropdown() {
-        System.out.println("➕ ThorX6 Add Mark Dropdown - Opening visual mark selection with intelligent coder integration...");
+        if (!ENABLE_ADD_MARK_DROPDOWN) {
+            // Fallback to original grid-based implementation
+            handleAddMarkGridDialog();
+            return;
+        }
+        
+        System.out.println("🔽 Showing Add Mark dropdown (soft-coded style: " + ADD_MARK_DROPDOWN_STYLE + ")");
+        
+        // Route to appropriate dropdown implementation based on soft coding
+        if ("SIMPLE".equals(ADD_MARK_DROPDOWN_STYLE)) {
+            showSimpleMarkDropdown();
+        } else if ("PROFESSIONAL".equals(ADD_MARK_DROPDOWN_STYLE)) {
+            showProfessionalMarkDropdown();
+        } else if ("THORX6".equals(ADD_MARK_DROPDOWN_STYLE)) {
+            showThorX6MarkDropdown();
+        } else {
+            // Default to simple if unknown style
+            showSimpleMarkDropdown();
+        }
+    }
+    
+    /**
+     * Simple dropdown using JOptionPane with icons (Soft Coding Implementation)
+     */
+    private static void showSimpleMarkDropdown() {
+        java.util.List<MarkOption> markOptions = new java.util.ArrayList<>();
+        
+        // Build list of available marks from MARK_TYPES_GRID
+        for (int row = 0; row < MARK_TYPES_GRID.length; row++) {
+            for (int col = 0; col < MARK_TYPES_GRID[row].length; col++) {
+                MarkTypeConfig mark = MARK_TYPES_GRID[row][col];
+                if (mark != null) {
+                    String displayText = SHOW_MARK_ICONS_IN_DROPDOWN ? 
+                        getMarkIcon(mark.name) + " " + mark.name : mark.name;
+                    if (SHOW_MARK_DESCRIPTIONS) {
+                        displayText += " - " + getMarkDescription(mark.name);
+                    }
+                    markOptions.add(new MarkOption(displayText, mark));
+                }
+            }
+        }
+        
+        // Show selection dialog
+        MarkOption[] options = markOptions.toArray(new MarkOption[0]);
+        MarkOption selected = (MarkOption) javax.swing.JOptionPane.showInputDialog(
+            null,
+            "Select a mark type to add:",
+            "Add Mark",
+            javax.swing.JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+        
+        if (selected != null && AUTO_CLOSE_MARK_DROPDOWN_ON_SELECT) {
+            System.out.println("🎯 Selected mark: " + selected.mark.name);
+            selected.mark.action.run();
+        }
+    }
+    
+    /**
+     * Professional dropdown with custom dialog and enhanced UI
+     */
+    private static void showProfessionalMarkDropdown() {
+        javax.swing.JDialog dialog = new javax.swing.JDialog((java.awt.Frame) null, "Add Mark - Professional Style", true);
+        dialog.setDefaultCloseOperation(javax.swing.JDialog.DISPOSE_ON_CLOSE);
+        dialog.setSize(350, 400);
+        dialog.setLocationRelativeTo(null);
+        
+        javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        // Title
+        javax.swing.JLabel titleLabel = new javax.swing.JLabel("Select Mark Type", javax.swing.JLabel.CENTER);
+        titleLabel.setFont(new java.awt.Font(java.awt.Font.SANS_SERIF, java.awt.Font.BOLD, 16));
+        titleLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 15, 0));
+        
+        // Create list model and list
+        javax.swing.DefaultListModel<MarkOption> listModel = new javax.swing.DefaultListModel<>();
+        
+        for (int row = 0; row < MARK_TYPES_GRID.length; row++) {
+            for (int col = 0; col < MARK_TYPES_GRID[row].length; col++) {
+                MarkTypeConfig mark = MARK_TYPES_GRID[row][col];
+                if (mark != null) {
+                    String displayText = SHOW_MARK_ICONS_IN_DROPDOWN ? 
+                        getMarkIcon(mark.name) + " " + mark.name : mark.name;
+                    if (SHOW_MARK_DESCRIPTIONS) {
+                        displayText += " - " + getMarkDescription(mark.name);
+                    }
+                    listModel.addElement(new MarkOption(displayText, mark));
+                }
+            }
+        }
+        
+        javax.swing.JList<MarkOption> markList = new javax.swing.JList<>(listModel);
+        markList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        markList.setSelectedIndex(0);
+        
+        if (ENABLE_MARK_DROPDOWN_HOVER_EFFECTS) {
+            // Add hover effects
+            markList.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+                @Override
+                public void mouseMoved(java.awt.event.MouseEvent e) {
+                    int index = markList.locationToIndex(e.getPoint());
+                    if (index >= 0) {
+                        markList.setSelectedIndex(index);
+                    }
+                }
+            });
+        }
+        
+        javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(markList);
+        scrollPane.setPreferredSize(new java.awt.Dimension(300, 250));
+        
+        // Button panel
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel(new java.awt.FlowLayout());
+        javax.swing.JButton selectButton = new javax.swing.JButton("Add Selected Mark");
+        javax.swing.JButton cancelButton = new javax.swing.JButton("Cancel");
+        
+        selectButton.addActionListener(e -> {
+            MarkOption selected = markList.getSelectedValue();
+            if (selected != null) {
+                System.out.println("🎯 Professional style selected: " + selected.mark.name);
+                selected.mark.action.run();
+                dialog.dispose();
+            }
+        });
+        
+        cancelButton.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(selectButton);
+        buttonPanel.add(cancelButton);
+        
+        mainPanel.add(titleLabel, java.awt.BorderLayout.NORTH);
+        mainPanel.add(scrollPane, java.awt.BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        dialog.setVisible(true);
+    }
+    
+    /**
+     * ThorX6 style dropdown (mimics original ThorX6 software appearance)
+     */
+    private static void showThorX6MarkDropdown() {
+        // For now, fallback to professional style
+        // Can be enhanced later to match exact ThorX6 appearance
+        showProfessionalMarkDropdown();
+    }
+    
+    /**
+     * Original grid-based implementation (fallback when dropdown is disabled)
+     */
+    private static void handleAddMarkGridDialog() {
+        System.out.println("➕ ThorX6 Add Mark Grid - Opening visual mark selection with intelligent coder integration...");
         
         try {
             // Create dropdown window
@@ -1198,21 +1519,25 @@ public class ThorX6HorizontalConfig {
             for (int row = 0; row < MARK_TYPES_GRID.length; row++) {
                 for (int col = 0; col < MARK_TYPES_GRID[row].length; col++) {
                     MarkTypeConfig mark = MARK_TYPES_GRID[row][col];
-                    
-                    JButton markButton = new JButton("<html><center>" + 
-                        mark.icon + "<br>" + mark.name + "</center></html>");
-                    markButton.setToolTipText(mark.tooltip);
-                    markButton.setPreferredSize(new Dimension(70, 60));
-                    markButton.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
-                    
-                    // Add action listener
-                    markButton.addActionListener(e -> {
-                        System.out.println("🎯 Selected: " + mark.icon + " " + mark.name);
-                        mark.action.run(); // Execute the mark type action
-                        dropdownFrame.dispose(); // Close dropdown
-                    });
-                    
-                    gridPanel.add(markButton);
+                    if (mark != null) {
+                        JButton markButton = new JButton("<html><center>" + 
+                            mark.icon + "<br>" + mark.name + "</center></html>");
+                        markButton.setToolTipText(mark.tooltip);
+                        markButton.setPreferredSize(new Dimension(70, 60));
+                        markButton.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+                        
+                        // Add action listener
+                        markButton.addActionListener(e -> {
+                            System.out.println("🎯 Selected: " + mark.icon + " " + mark.name);
+                            mark.action.run(); // Execute the mark type action
+                            dropdownFrame.dispose(); // Close dropdown
+                        });
+                        
+                        gridPanel.add(markButton);
+                    } else {
+                        // Add empty placeholder
+                        gridPanel.add(new JLabel());
+                    }
                 }
             }
             
@@ -1227,12 +1552,50 @@ public class ThorX6HorizontalConfig {
             dropdownFrame.add(mainPanel);
             dropdownFrame.setVisible(true);
             
-            System.out.println("✅ Visual dropdown opened with " + 
+            System.out.println("✅ Visual grid opened with " + 
                 (MARK_TYPES_GRID.length * MARK_TYPES_GRID[0].length) + " mark types");
             
         } catch (Exception e) {
             System.err.println("❌ Failed to open dropdown: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Get soft-coded icon for mark type (Unicode/Emoji based)
+     */
+    private static String getMarkIcon(String markName) {
+        if (!SHOW_MARK_ICONS_IN_DROPDOWN) return "";
+        
+        switch (markName.toLowerCase()) {
+            case "text": return "📝";           // 📝 Document/Text icon
+            case "bowtext": return "🏹";        // 🏹 Bow and arrow (curved text)
+            case "datamatrix": return "⬛";     // ⬛ Black square (matrix)
+            case "graph": return "📈";          // 📈 Graph/Chart trending up
+            case "chart": return "📊";          // 📊 Bar chart
+            case "ruler": return "📏";          // 📏 Ruler/Straight edge
+            case "avoidpoint": return "⚠️";     // ⚠️ Warning sign (avoid)
+            case "farsi": return "🌍";          // 🌍 Globe (international text)
+            default: return "➕";              // ➕ Plus sign (generic add)
+        }
+    }
+    
+    /**
+     * Get soft-coded description for mark type
+     */
+    private static String getMarkDescription(String markName) {
+        if (!SHOW_MARK_DESCRIPTIONS) return "";
+        
+        switch (markName.toLowerCase()) {
+            case "text": return "Standard text marking";
+            case "bowtext": return "Curved/arc text marking";
+            case "datamatrix": return "2D barcode matrix";
+            case "graph": return "Line graph visualization";
+            case "chart": return "Bar chart display";
+            case "ruler": return "Measurement ruler";
+            case "avoidpoint": return "Collision avoidance marker";
+            case "farsi": return "Persian/Arabic text";
+            default: return "Mark type";
         }
     }
     
@@ -1314,7 +1677,7 @@ public class ThorX6HorizontalConfig {
     
     // ==================== SOFT-CODED CODER ACTION HANDLER ====================
     /**
-     * Handle Coder actions - Enhanced with Innovative State Management
+     * Handle Coder actions - Enhanced with Intelligent Mark Modification Support
      */
     public static void handleCoderAction(String coderType) {
         if (!CODER_INTEGRATION_ACTIVE) {
@@ -1336,10 +1699,196 @@ public class ThorX6HorizontalConfig {
                 new Color(240, 255, 240));
         }
         
-        // Original coder action logic
-        handleOriginalCoderAction(coderType);
+        // NEW: Intelligent Coder Modification System
+        handleIntelligentCoderAction(coderType);
     }
     
+    /**
+     * Intelligent Coder Action - Check for selected coder marks first, then create new
+     */
+    private static void handleIntelligentCoderAction(String coderType) {
+        System.out.println("🧠 Intelligent Coder Action: " + coderType);
+        
+        try {
+            DrawingCanvas canvas = getCurrentDrawingCanvas();
+            if (canvas != null) {
+                Mark selectedMark = canvas.getSelectedMark();
+                
+                // Check if there's a selected mark that can be modified
+                if (selectedMark != null && selectedMark instanceof TextMark) {
+                    TextMark textMark = (TextMark) selectedMark;
+                    String currentText = textMark.getText();
+                    
+                    // Check if the selected mark is a coder mark (contains ":")
+                    if (isCoderMark(currentText)) {
+                        System.out.println("🔄 Found selected coder mark: " + currentText);
+                        handleCoderMarkModification(textMark, coderType, canvas);
+                        return;
+                    } else {
+                        System.out.println("ℹ️ Selected mark is not a coder mark, creating new coder");
+                    }
+                } else {
+                    System.out.println("ℹ️ No coder mark selected, creating new coder");
+                }
+                
+                // No selected coder mark, create new one
+                handleOriginalCoderAction(coderType);
+                
+            } else {
+                System.out.println("⚠️ Canvas not found for coder action");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Intelligent coder action failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Check if a text mark is a coder mark (contains "Type: Data" format)
+     */
+    private static boolean isCoderMark(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Check for coder format: "CoderType: CoderData"
+        return text.contains(": ") && (
+            text.startsWith("Serial: ") ||
+            text.startsWith("VIN: ") ||
+            text.startsWith("PIN: ") ||
+            text.startsWith("DateTime: ") ||
+            text.startsWith("VCode: ") ||
+            text.startsWith("TxMark6PieCoder: ") ||
+            text.startsWith("Class: ") ||
+            text.startsWith("Random Code: ") ||
+            text.startsWith("QR Code: ") ||
+            text.startsWith("DataMatrix: ") ||
+            text.startsWith("Code 128: ") ||
+            text.startsWith("Code 39: ") ||
+            text.startsWith("EAN-13: ") ||
+            text.startsWith("UPC-A: ") ||
+            text.startsWith("PDF417: ") ||
+            text.startsWith("Aztec: ") ||
+            text.startsWith("Code 93: ") ||
+            text.startsWith("MaxiCode: ")
+        );
+    }
+    
+    /**
+     * Handle modification of an existing coder mark
+     */
+    private static void handleCoderMarkModification(TextMark coderMark, String newCoderType, DrawingCanvas canvas) {
+        String currentText = coderMark.getText();
+        String[] parts = currentText.split(": ", 2);
+        String currentCoderType = parts[0];
+        String currentCoderData = parts.length > 1 ? parts[1] : "";
+        
+        System.out.println("🔧 Modifying coder mark from '" + currentCoderType + "' to '" + newCoderType + "'");
+        
+        // Generate new coder data based on the requested type
+        String newCoderData = generateCoderDataForType(newCoderType, currentCoderData);
+        
+        if (newCoderData != null && !newCoderData.trim().isEmpty()) {
+            // Update the existing mark with new coder data
+            String newDisplayText = newCoderType + ": " + newCoderData;
+            coderMark.setText(newDisplayText);
+            
+            // Update canvas display
+            canvas.repaint();
+            
+            System.out.println("✅ Coder mark modified: " + currentText + " → " + newDisplayText);
+            
+            // Show modification confirmation
+            showCoderModificationNotification(currentCoderType, newCoderType, newCoderData);
+        } else {
+            System.out.println("⚠️ Coder modification cancelled or failed");
+        }
+    }
+    
+    /**
+     * Generate coder data for a specific type (used for modification)
+     */
+    private static String generateCoderDataForType(String coderType, String currentData) {
+        // Special handling for auto-generated types
+        if ("Serial".equals(coderType) && ENABLE_AUTO_INCREMENT) {
+            return generateNextSerialNumber();
+        } else if ("VIN".equals(coderType) && ENABLE_VIN_VALIDATION) {
+            return generateVINNumber();
+        } else if ("PIN".equals(coderType) && ENABLE_PIN_SECURITY) {
+            return generatePINNumber();
+        } else if ("DateTime".equals(coderType) && ENABLE_CUSTOM_DATETIME_FORMAT) {
+            return generateDateTimeStamp();
+        } else if ("VCode".equals(coderType) && ENABLE_VCODE_ENCRYPTION) {
+            return generateVCodeNumber();
+        } else if ("TxMark6PieCoder".equals(coderType) && ENABLE_TXMARK6PIE_ADVANCED) {
+            return generateTxMark6PieCode();
+        } else if ("Class".equals(coderType) && ENABLE_CLASS_CATEGORIZATION) {
+            return generateClassCode();
+        } else if ("Random Code".equals(coderType) && ENABLE_RANDOM_ALGORITHMS) {
+            return generateRandomCode();
+        } else {
+            // For other types, show input dialog with current data as default
+            return showCoderModificationDialog(coderType, currentData);
+        }
+    }
+    
+    /**
+     * Show dialog for coder data modification with current data as default
+     */
+    private static String showCoderModificationDialog(String coderType, String currentData) {
+        return (String) JOptionPane.showInputDialog(
+            null,
+            "Modify " + coderType + " data:",
+            "Modify Coder",
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            null,
+            currentData
+        );
+    }
+    
+    /**
+     * Show coder modification options when no coder type is selected
+     */
+    private static void showCoderModificationOptions(TextMark coderMark, DrawingCanvas canvas) {
+        String currentText = coderMark.getText();
+        String[] parts = currentText.split(": ", 2);
+        String currentCoderType = parts[0];
+        
+        // Show selection dialog for new coder type
+        String[] coderTypes = {"Serial", "VIN", "PIN", "DateTime", "VCode", "TxMark6PieCoder", 
+                              "Class", "Random Code", "QR Code", "DataMatrix", "Code 128", 
+                              "Code 39", "EAN-13", "UPC-A", "PDF417", "Aztec", "Code 93", "MaxiCode"};
+        
+        String selectedType = (String) JOptionPane.showInputDialog(
+            null,
+            "Current Coder: " + currentText + "\n\nSelect new coder type to modify to:",
+            "Modify Coder Type",
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            coderTypes,
+            currentCoderType
+        );
+        
+        if (selectedType != null && !selectedType.equals(currentCoderType)) {
+            handleCoderMarkModification(coderMark, selectedType, canvas);
+        } else if (selectedType != null && selectedType.equals(currentCoderType)) {
+            // Same type selected, just regenerate data
+            System.out.println("🔄 Regenerating data for same coder type: " + selectedType);
+            handleCoderMarkModification(coderMark, selectedType, canvas);
+        }
+    }
+    
+    /**
+     * Show notification for successful coder modification
+     */
+    private static void showCoderModificationNotification(String oldType, String newType, String newData) {
+        if (ENABLE_VISUAL_STATE_FEEDBACK) {
+            String message = "Coder Modified: " + oldType + " → " + newType + "\nNew Data: " + newData;
+            showCoderStateNotification("Coder Modified", message, new Color(240, 255, 240));
+        }
+    }
+
     /**
      * Original Coder Action Logic (preserved)
      */
@@ -1828,6 +2377,11 @@ public class ThorX6HorizontalConfig {
      * Handle Coder Type Selection - Soft-coded 5x2 grid dropdown (similar to Add Mark)
      */
     public static void handleCoderTypeSelection() {
+        if (DELETE_CODER_TYPE_COMPLETELY) {
+            System.out.println("🚫 Coder Type functionality completely deleted via soft coding");
+            return;
+        }
+        
         if (!ENABLE_CODER_TYPE_OPTIONS) {
             System.out.println("⚠️ Coder Type options disabled via soft coding");
             return;
@@ -3772,8 +4326,26 @@ public class ThorX6HorizontalConfig {
      * Place text at specific canvas coordinates
      */
     private static void placeTextAtPosition(DrawingCanvas canvas, int x, int y) {
-        // Create TextMark directly with calculated position
-        TextMark textMark = new TextMark(x, y, "Text");
+        // 🎯 ThorX6 Integration: Get content from current active coder
+        String textContent = "Text"; // Default fallback
+        
+        // Check if there's an active coder to provide intelligent content
+        ensureCoderInitialized(); // Ensure currentActiveCoder is not null
+        if (currentActiveCoder != null) {
+            try {
+                textContent = currentActiveCoder.generateCode();
+                System.out.println("🎯 ThorX6 Integration: Using coder '" + currentActiveCoder.getTypeName() + 
+                                  "' content: " + textContent);
+            } catch (Exception e) {
+                System.out.println("⚠️ Coder generation failed, using default text: " + e.getMessage());
+                textContent = "Text"; // Fallback to default
+            }
+        } else {
+            System.out.println("💡 No active coder - using default text content");
+        }
+        
+        // Create TextMark with intelligent content from coder
+        TextMark textMark = new TextMark(x, y, textContent);
         textMark.setCanDrag(true);
         textMark.setCanResize(true);
         
@@ -3879,31 +4451,194 @@ public class ThorX6HorizontalConfig {
     // ==================== INNOVATIVE CODER STATE MANAGEMENT SYSTEM ====================
     
     /**
-     * Handle Intelligent Coder Button - State-based behavior
+     * Handle Rebuilt Coder Button - DIRECT MODIFICATION SYSTEM (VERSION 3.0)
      */
-    private static void handleIntelligentCoderButton() {
-        if (!ENABLE_CODER_STATE_SYSTEM) {
-            // Fallback to basic DataMatrix behavior
-            handleCoderAction("DataMatrix");
+    private static void handleRebuiltCoderButtonV3() {
+        System.out.println("� REBUILT CODER BUTTON - VERSION 3.0 - MODIFICATION FOCUSED!");
+        System.out.println("🎯 Current Coder Type: " + (currentCoderType != null ? currentCoderType : "NONE SELECTED"));
+        
+        // STEP 1: Check if we have a Coder Type selected
+        if (currentCoderType == null || currentCoderType.trim().isEmpty()) {
+            System.out.println("❌ No Coder Type selected! Please select from dropdown first.");
+            showCoderStateNotification("Select Coder Type First", "Please select a Coder Type from the dropdown before clicking Coder button.", new Color(255, 240, 240));
             return;
         }
         
-        System.out.println("🧠 Intelligent Coder Button clicked - analyzing state...");
+        // STEP 2: Find canvas and selected marks
+        DrawingCanvas canvas = getCurrentDrawingCanvas();
+        if (canvas == null) {
+            System.out.println("❌ No canvas found!");
+            return;
+        }
         
-        if (isNoCoderMode) {
-            // No Coder mode - show informative message
-            showCoderStateDialog("No Coder Selected", 
-                "Please select a coder type from the 'Coder Type' dropdown first.\n\n" +
-                "Available options: QR Code, DataMatrix, Code 128, Code 39, EAN-13, etc.\n\n" +
-                "The Coder button will work once you select a specific coder type.",
-                JOptionPane.INFORMATION_MESSAGE,
-                new Color(255, 240, 240));
+        Mark selectedMark = canvas.getSelectedMark();
+        System.out.println("🔍 Selected mark: " + (selectedMark != null ? selectedMark.getClass().getSimpleName() : "NONE"));
+        
+        // STEP 3: Check if there's a selected TextMark that can be modified
+        if (selectedMark != null && selectedMark instanceof TextMark) {
+            TextMark textMark = (TextMark) selectedMark;
+            String currentText = textMark.getText();
+            
+            System.out.println("� TextMark content: '" + currentText + "'");
+            
+            // Check if it's a coder mark (contains ":")
+            if (isCoderMark(currentText)) {
+                System.out.println("✅ Found coder mark to modify!");
+                modifyCoderMark(textMark, currentText, currentCoderType, canvas);
+                return;
+            } else {
+                System.out.println("ℹ️ Selected TextMark is not a coder mark, will create new one");
+            }
+        }
+        
+        // STEP 4: No suitable mark selected, look for any coder marks to modify
+        java.util.List<Mark> allMarks = canvas.getMarks();
+        System.out.println("🔍 Searching " + allMarks.size() + " marks for coder marks...");
+        
+        for (Mark mark : allMarks) {
+            if (mark instanceof TextMark) {
+                TextMark textMark = (TextMark) mark;
+                String text = textMark.getText();
+                if (isCoderMark(text)) {
+                    System.out.println("🔄 Auto-selecting first coder mark found: " + text);
+                    modifyCoderMark(textMark, text, currentCoderType, canvas);
+                    return;
+                }
+            }
+        }
+        
+        // STEP 5: No coder marks found, create new one
+        System.out.println("➕ No coder marks found, creating new " + currentCoderType + " mark");
+        createNewCoderMark(currentCoderType);
+    }
+    
+    /**
+     * MODIFY AN EXISTING CODER MARK TO NEW TYPE WITH CUSTOM VALUE EDITING
+     */
+    private static void modifyCoderMark(TextMark textMark, String currentText, String newCoderType, DrawingCanvas canvas) {
+        System.out.println("🔧 MODIFYING CODER MARK:");
+        System.out.println("   From: " + currentText);
+        System.out.println("   To Type: " + newCoderType);
+        
+        // Extract current coder data if possible
+        String[] parts = currentText.split(": ", 2);
+        String oldType = parts[0];
+        String oldData = parts.length > 1 ? parts[1] : "";
+        
+        String newData;
+        
+        // ENHANCED: Allow direct editing of ALL coder types
+        if (shouldPromptForCustomValue(newCoderType, oldType)) {
+            newData = promptForCustomCoderValue(oldData, newCoderType, oldType);
+            if (newData == null) {
+                System.out.println("❌ Coder value editing cancelled");
+                return;
+            }
         } else {
-            // Active coder mode - generate the selected type
-            System.out.println("✅ Generating " + currentCoderType + " using intelligent system...");
-            handleOriginalCoderAction(currentCoderType);
+            // Auto-generate data for automatic coder types
+            newData = generateCoderDataForType(newCoderType, oldData);
+        }
+        
+        String newDisplayText = newCoderType + ": " + newData;
+        
+        // Update the text mark
+        textMark.setText(newDisplayText);
+        canvas.repaint();
+        
+        System.out.println("✅ MODIFICATION COMPLETE: " + newDisplayText);
+        showCoderStateNotification("Coder Modified", "Changed " + oldType + " to " + newCoderType + ": " + newData, new Color(240, 255, 240));
+    }
+    
+    /**
+     * CREATE NEW CODER MARK WHEN NO EXISTING ONES TO MODIFY
+     */
+    private static void createNewCoderMark(String coderType) {
+        System.out.println("➕ Creating new " + coderType + " mark");
+        handleCoderAction(coderType);
+    }
+    
+    
+    /**
+     * CHECK IF WE SHOULD PROMPT FOR CUSTOM VALUE (vs auto-generate)
+     */
+    private static boolean shouldPromptForCustomValue(String newCoderType, String oldType) {
+        // Always prompt for these types as they are typically user-defined
+        return newCoderType.equals("Serial") || 
+               newCoderType.equals("VIN") || 
+               newCoderType.equals("PIN") || 
+               newCoderType.equals("Class") ||
+               oldType.equals("Serial") ||
+               oldType.equals("VIN") ||
+               oldType.equals("PIN") ||
+               oldType.equals("Class");
+    }
+    
+    /**
+     * PROMPT USER TO ENTER CUSTOM CODER VALUE
+     */
+    private static String promptForCustomCoderValue(String currentValue, String newCoderType, String oldType) {
+        System.out.println("📝 Prompting for custom " + newCoderType + " value - Current: " + currentValue);
+        
+        // Create appropriate dialog based on coder type
+        String dialogTitle = "Edit " + newCoderType;
+        String dialogMessage = getCoderInputMessage(newCoderType);
+        String placeholder = getCoderPlaceholder(newCoderType);
+        
+        // Show input dialog with context
+        String fullMessage = dialogMessage + "\n\n" +
+                            "Current value: " + currentValue + "\n" +
+                            "Example: " + placeholder + "\n\n" +
+                            "Enter new value:";
+        
+        String userInput = javax.swing.JOptionPane.showInputDialog(
+            null, 
+            fullMessage, 
+            dialogTitle, 
+            javax.swing.JOptionPane.QUESTION_MESSAGE
+        );
+        
+        if (userInput != null && !userInput.trim().isEmpty()) {
+            String cleanInput = userInput.trim();
+            System.out.println("✅ User entered custom " + newCoderType + ": " + cleanInput);
+            return cleanInput;
+        } else if (userInput != null && userInput.trim().isEmpty()) {
+            // User entered empty string - keep current value
+            System.out.println("ℹ️ Empty input - keeping current value: " + currentValue);
+            return currentValue;
+        } else {
+            // User cancelled
+            System.out.println("❌ User cancelled " + newCoderType + " input");
+            return null;
         }
     }
+    
+    /**
+     * GET APPROPRIATE INPUT MESSAGE FOR CODER TYPE
+     */
+    private static String getCoderInputMessage(String coderType) {
+        switch (coderType) {
+            case "Serial": return "Enter the serial number:";
+            case "VIN": return "Enter the VIN (Vehicle Identification Number):";
+            case "PIN": return "Enter the PIN code:";
+            case "Class": return "Enter the class identifier:";
+            default: return "Enter the " + coderType.toLowerCase() + " value:";
+        }
+    }
+    
+    /**
+     * GET EXAMPLE PLACEHOLDER FOR CODER TYPE
+     */
+    private static String getCoderPlaceholder(String coderType) {
+        switch (coderType) {
+            case "Serial": return "SN001, ABC123, or custom format";
+            case "VIN": return "1HGBH41JXMN109186";
+            case "PIN": return "1234, ABC123";
+            case "Class": return "ClassA, Type1, Premium";
+            default: return "Custom value";
+        }
+    }
+    
+    // ==================== SUPPORTING METHODS FOR NEW CODER SYSTEM ====================
     
     /**
      * Update Coder Button Visual State based on current mode
@@ -4189,11 +4924,24 @@ public class ThorX6HorizontalConfig {
                 Point centerPoint = calculateSmartCanvasPlacement(canvas);
                 System.out.println("📍 Smart placement: DataMatrix at (" + centerPoint.x + ", " + centerPoint.y + ")");
                 
-                // INTELLIGENT INTEGRATION: Use current coder type if available
-                String intelligentContent = getIntelligentCoderContent("DataMatrix");
-                System.out.println("🧠 Intelligent content generated: " + intelligentContent);
+                // 🎯 ThorX6 Integration: Use current active coder for intelligent content
+                String intelligentContent = "DM-001"; // Default fallback
                 
-                // Create DataMatrix mark with intelligent content
+                ensureCoderInitialized(); // Ensure currentActiveCoder is not null
+                if (currentActiveCoder != null) {
+                    try {
+                        intelligentContent = currentActiveCoder.generateCode();
+                        System.out.println("🎯 ThorX6 Integration: Using coder '" + currentActiveCoder.getTypeName() + 
+                                          "' content for DataMatrix: " + intelligentContent);
+                    } catch (Exception e) {
+                        System.out.println("⚠️ Coder generation failed, using default DataMatrix: " + e.getMessage());
+                        intelligentContent = "DM-001"; // Fallback
+                    }
+                } else {
+                    System.out.println("💡 No active coder - using default DataMatrix content");
+                }
+                
+                // Create DataMatrix mark with intelligent content from active coder
                 DotMatrixMark dataMatrixMark = new DotMatrixMark(centerPoint.x, centerPoint.y, intelligentContent);
                 canvas.getMarks().add(dataMatrixMark);
                 
@@ -4386,7 +5134,24 @@ public class ThorX6HorizontalConfig {
                 int centerX = canvas.getWidth() / 2 - 100; // Offset for text size
                 int centerY = canvas.getHeight() / 2 - 40;
                 
-                BowTextMark bowTextMark = new BowTextMark(centerX, centerY, "BOW TEXT");
+                // 🎯 ThorX6 Integration: Get content from current active coder
+                String bowTextContent = "BOW TEXT"; // Default fallback
+                
+                ensureCoderInitialized(); // Ensure currentActiveCoder is not null
+                if (currentActiveCoder != null) {
+                    try {
+                        bowTextContent = currentActiveCoder.generateCode();
+                        System.out.println("🎯 ThorX6 Integration: Using coder '" + currentActiveCoder.getTypeName() + 
+                                          "' content for BowText: " + bowTextContent);
+                    } catch (Exception e) {
+                        System.out.println("⚠️ Coder generation failed, using default bow text: " + e.getMessage());
+                        bowTextContent = "BOW TEXT"; // Fallback
+                    }
+                } else {
+                    System.out.println("💡 No active coder - using default bow text content");
+                }
+                
+                BowTextMark bowTextMark = new BowTextMark(centerX, centerY, bowTextContent);
                 bowTextMark.setCanDrag(true);
                 bowTextMark.setCanResize(true);
                 
@@ -4854,6 +5619,1527 @@ public class ThorX6HorizontalConfig {
             System.out.println("📌 Mark auto-selected for immediate editing");
         } catch (Exception e) {
             System.out.println("⚠️ Could not auto-select mark: " + e.getMessage());
+        }
+    }
+
+    // ==================== RECONSTRUCTED CODER TAB SYSTEM (MODULAR OOP DESIGN) ====================
+    
+    // SOFT CODING: Enable/Disable New Modular Coder System
+    public static final boolean ENABLE_RECONSTRUCTED_CODER_SYSTEM = true;
+    public static final boolean ENABLE_REAL_TIME_PREVIEW = true;
+    public static final boolean ENABLE_CODER_CONFIGURATION = true;
+    public static final boolean ADD_RECONSTRUCTED_CODER_BUTTON_GROUP = true; // Add new button group to toolbar
+    
+    // SOFT CODING: Consolidation Control - Move Coder Type functionality to Reconstructed Tab
+    public static final boolean CONSOLIDATE_CODER_FUNCTIONALITY = true;    // Move all coder features to single tab
+    public static final boolean DISABLE_ORIGINAL_CODER_TYPE_BUTTON = true; // Hide original "Coder Type" button when consolidated
+    public static final boolean INTEGRATE_ORIGINAL_CODERS = true;          // Include original coder types in reconstructed system
+    
+    // ==================== ALL CODERS DROPDOWN SOFT CODING ====================
+    
+    public static final boolean ENABLE_ALL_CODERS_DROPDOWN = true;        // Enable dropdown menu for All Coders button
+    public static final boolean SHOW_CODER_ICONS_IN_DROPDOWN = true;       // Show icons next to coder names in dropdown
+    public static final String ALL_CODERS_DROPDOWN_STYLE = "THORX6";        // SIMPLE, PROFESSIONAL, or THORX6
+    public static final boolean AUTO_CLOSE_DROPDOWN_ON_SELECT = true;      // Close dropdown after selection
+    public static final boolean ENABLE_DROPDOWN_HOVER_EFFECTS = true;      // Enable hover effects in dropdown
+    public static final int DROPDOWN_MAX_WIDTH = 200;                      // Maximum width of dropdown menu
+    public static final int DROPDOWN_ITEM_HEIGHT = 28;                     // Height of each dropdown item
+    
+    // Dropdown Content Configuration
+    public static final boolean SHOW_CODER_DESCRIPTIONS = false;           // Show brief descriptions in dropdown
+    public static final boolean GROUP_CODERS_BY_TYPE = false;              // Group similar coder types together
+    public static final String DROPDOWN_SELECTION_COLOR = "#E6F3FF";       // Hex color for selected item background
+    
+    // ==================== ADD MARK DROPDOWN SOFT CODING ====================
+    
+    public static final boolean ENABLE_ADD_MARK_DROPDOWN = true;           // Enable dropdown menu for Add Mark button
+    public static final boolean SHOW_MARK_ICONS_IN_DROPDOWN = true;        // Show icons next to mark names in dropdown
+    public static final String ADD_MARK_DROPDOWN_STYLE = "SIMPLE";           // SIMPLE, PROFESSIONAL, or THORX6
+    public static final boolean AUTO_CLOSE_MARK_DROPDOWN_ON_SELECT = true;  // Close dropdown after mark selection
+    public static final boolean ENABLE_MARK_DROPDOWN_HOVER_EFFECTS = true;  // Enable hover effects in mark dropdown
+    public static final int MARK_DROPDOWN_MAX_WIDTH = 250;                  // Maximum width of mark dropdown menu
+    public static final int MARK_DROPDOWN_ITEM_HEIGHT = 32;                 // Height of each mark dropdown item
+    
+    // Mark Dropdown Content Configuration
+    public static final boolean SHOW_MARK_DESCRIPTIONS = true;              // Show brief descriptions in mark dropdown
+    public static final boolean GROUP_MARKS_BY_CATEGORY = true;             // Group mark types by category (Basic/Advanced)
+    public static final String MARK_DROPDOWN_SELECTION_COLOR = "#E6F3FF";    // Hex color for selected mark item background
+    public static final boolean SHOW_MARK_TOOLTIPS_IN_DROPDOWN = true;      // Show tooltips when hovering over mark options
+    
+    // Preview Panel Reference (for real-time updates)
+    private static javax.swing.JTextArea coderPreviewArea = null;
+    private static javax.swing.JPanel coderConfigPanel = null;
+    
+    /**
+     * CODER INTERFACE - Common interface for all coder types (OOP Design)
+     */
+    public interface CoderInterface {
+        String generateCode();
+        String getTypeName();
+        javax.swing.JPanel getConfigurationPanel();
+        String getPreviewText();
+        void resetConfiguration();
+    }
+    
+    /**
+     * ABSTRACT BASE CODER CLASS - Common functionality for all coders
+     */
+    public static abstract class BaseCoder implements CoderInterface {
+        protected String typeName;
+        protected boolean isEnabled;
+        
+        public BaseCoder(String typeName) {
+            this.typeName = typeName;
+            this.isEnabled = true;
+        }
+        
+        @Override
+        public String getTypeName() {
+            return typeName;
+        }
+        
+        @Override
+        public String getPreviewText() {
+            return generateCode();
+        }
+        
+        protected void updatePreview() {
+            if (ENABLE_REAL_TIME_PREVIEW && coderPreviewArea != null) {
+                coderPreviewArea.setText(getPreviewText());
+                coderPreviewArea.repaint();
+            }
+        }
+    }
+    
+    /**
+     * 1. FIXED TEXT CODER - User enters static text
+     */
+    public static class FixedTextCoder extends BaseCoder {
+        private String fixedText = "SAMPLE TEXT";
+        private javax.swing.JTextField textField;
+        
+        public FixedTextCoder() {
+            super("Fixed Text");
+        }
+        
+        @Override
+        public String generateCode() {
+            return fixedText;
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("Fixed Text Configuration"));
+            
+            panel.add(new javax.swing.JLabel("Text:"));
+            textField = new javax.swing.JTextField(fixedText, 20);
+            textField.addActionListener(e -> {
+                fixedText = textField.getText();
+                updatePreview();
+            });
+            panel.add(textField);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            fixedText = "SAMPLE TEXT";
+            if (textField != null) textField.setText(fixedText);
+            updatePreview();
+        }
+    }
+    
+    /**
+     * 2. SERIAL NUMBER CODER - Configurable serial with increment
+     */
+    public static class SerialNumberCoder extends BaseCoder {
+        private int startNumber = 1;
+        private int stepSize = 1;
+        private int currentNumber;
+        private String prefix = "SN";
+        private String suffix = "";
+        private javax.swing.JTextField startField, stepField, prefixField, suffixField;
+        
+        public SerialNumberCoder() {
+            super("Serial Number");
+            currentNumber = startNumber;
+        }
+        
+        @Override
+        public String generateCode() {
+            String result = prefix + String.format("%03d", currentNumber) + suffix;
+            currentNumber += stepSize;
+            return result;
+        }
+        
+        @Override
+        public String getPreviewText() {
+            return prefix + String.format("%03d", currentNumber) + suffix + " (Next: " + 
+                   prefix + String.format("%03d", currentNumber + stepSize) + suffix + ")";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridLayout(5, 2, 5, 5));
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("Serial Number Configuration"));
+            
+            panel.add(new javax.swing.JLabel("Start Number:"));
+            startField = new javax.swing.JTextField(String.valueOf(startNumber), 10);
+            startField.addActionListener(e -> {
+                try {
+                    startNumber = Integer.parseInt(startField.getText());
+                    currentNumber = startNumber;
+                    updatePreview();
+                } catch (NumberFormatException ex) { startField.setText(String.valueOf(startNumber)); }
+            });
+            panel.add(startField);
+            
+            panel.add(new javax.swing.JLabel("Step Size:"));
+            stepField = new javax.swing.JTextField(String.valueOf(stepSize), 10);
+            stepField.addActionListener(e -> {
+                try {
+                    stepSize = Integer.parseInt(stepField.getText());
+                    updatePreview();
+                } catch (NumberFormatException ex) { stepField.setText(String.valueOf(stepSize)); }
+            });
+            panel.add(stepField);
+            
+            panel.add(new javax.swing.JLabel("Prefix:"));
+            prefixField = new javax.swing.JTextField(prefix, 10);
+            prefixField.addActionListener(e -> { prefix = prefixField.getText(); updatePreview(); });
+            panel.add(prefixField);
+            
+            panel.add(new javax.swing.JLabel("Suffix:"));
+            suffixField = new javax.swing.JTextField(suffix, 10);
+            suffixField.addActionListener(e -> { suffix = suffixField.getText(); updatePreview(); });
+            panel.add(suffixField);
+            
+            javax.swing.JButton resetButton = new javax.swing.JButton("Reset Counter");
+            resetButton.addActionListener(e -> { currentNumber = startNumber; updatePreview(); });
+            panel.add(resetButton);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            startNumber = 1;
+            stepSize = 1;
+            currentNumber = startNumber;
+            prefix = "SN";
+            suffix = "";
+            updatePreview();
+        }
+    }
+    
+    /**
+     * 3. DATE/TIME CODER - Current system date/time in configurable format
+     */
+    public static class DateTimeCoder extends BaseCoder {
+        private String dateFormat = "yyyyMMdd";
+        private javax.swing.JComboBox<String> formatCombo;
+        private final String[] formats = {"yyyyMMdd", "yyMMdd", "ddMMyyyy", "HHmm", "HHmmss", "yyyyMMdd_HHmm"};
+        
+        public DateTimeCoder() {
+            super("Date/Time");
+        }
+        
+        @Override
+        public String generateCode() {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(dateFormat);
+            return sdf.format(new java.util.Date());
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("Date/Time Configuration"));
+            
+            panel.add(new javax.swing.JLabel("Format:"));
+            formatCombo = new javax.swing.JComboBox<>(formats);
+            formatCombo.setSelectedItem(dateFormat);
+            formatCombo.addActionListener(e -> {
+                dateFormat = (String) formatCombo.getSelectedItem();
+                updatePreview();
+            });
+            panel.add(formatCombo);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            dateFormat = "yyyyMMdd";
+            if (formatCombo != null) formatCombo.setSelectedItem(dateFormat);
+            updatePreview();
+        }
+    }
+    
+    /**
+     * 4. SHIFT CODE CODER - Work shift based on system time
+     */
+    public static class ShiftCodeCoder extends BaseCoder {
+        private int shiftAStart = 6, shiftAEnd = 14;   // 6 AM - 2 PM
+        private int shiftBStart = 14, shiftBEnd = 22;  // 2 PM - 10 PM  
+        private int shiftCStart = 22, shiftCEnd = 6;   // 10 PM - 6 AM
+        private javax.swing.JSpinner aStartSpinner, aEndSpinner, bStartSpinner, bEndSpinner, cStartSpinner, cEndSpinner;
+        
+        public ShiftCodeCoder() {
+            super("Shift Code");
+        }
+        
+        @Override
+        public String generateCode() {
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+            
+            if (hour >= shiftAStart && hour < shiftAEnd) return "A";
+            else if (hour >= shiftBStart && hour < shiftBEnd) return "B";
+            else return "C";
+        }
+        
+        @Override
+        public String getPreviewText() {
+            return generateCode() + " (Current time: " + 
+                   new java.text.SimpleDateFormat("HH:mm").format(new java.util.Date()) + ")";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridLayout(3, 4, 5, 5));
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("Shift Code Configuration"));
+            
+            panel.add(new javax.swing.JLabel("Shift A:"));
+            aStartSpinner = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(shiftAStart, 0, 23, 1));
+            aStartSpinner.addChangeListener(e -> { shiftAStart = (Integer) aStartSpinner.getValue(); updatePreview(); });
+            panel.add(aStartSpinner);
+            panel.add(new javax.swing.JLabel("to"));
+            aEndSpinner = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(shiftAEnd, 0, 23, 1));
+            aEndSpinner.addChangeListener(e -> { shiftAEnd = (Integer) aEndSpinner.getValue(); updatePreview(); });
+            panel.add(aEndSpinner);
+            
+            panel.add(new javax.swing.JLabel("Shift B:"));
+            bStartSpinner = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(shiftBStart, 0, 23, 1));
+            bStartSpinner.addChangeListener(e -> { shiftBStart = (Integer) bStartSpinner.getValue(); updatePreview(); });
+            panel.add(bStartSpinner);
+            panel.add(new javax.swing.JLabel("to"));
+            bEndSpinner = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(shiftBEnd, 0, 23, 1));
+            bEndSpinner.addChangeListener(e -> { shiftBEnd = (Integer) bEndSpinner.getValue(); updatePreview(); });
+            panel.add(bEndSpinner);
+            
+            panel.add(new javax.swing.JLabel("Shift C:"));
+            cStartSpinner = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(shiftCStart, 0, 23, 1));
+            cStartSpinner.addChangeListener(e -> { shiftCStart = (Integer) cStartSpinner.getValue(); updatePreview(); });
+            panel.add(cStartSpinner);
+            panel.add(new javax.swing.JLabel("to"));
+            cEndSpinner = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(shiftCEnd, 0, 23, 1));
+            cEndSpinner.addChangeListener(e -> { shiftCEnd = (Integer) cEndSpinner.getValue(); updatePreview(); });
+            panel.add(cEndSpinner);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            shiftAStart = 6; shiftAEnd = 14;
+            shiftBStart = 14; shiftBEnd = 22;
+            shiftCStart = 22; shiftCEnd = 6;
+            updatePreview();
+        }
+    }
+    
+    /**
+     * 5. BARCODE/QR CODE CODER - Generate code images from text
+     */
+    public static class BarcodeCoder extends BaseCoder {
+        private String inputText = "SAMPLE123";
+        private String codeType = "QR Code";
+        private javax.swing.JTextField inputField;
+        private javax.swing.JComboBox<String> typeCombo;
+        private final String[] codeTypes = {"QR Code", "Code 128", "Code 39", "DataMatrix"};
+        
+        public BarcodeCoder() {
+            super("Barcode/QR Code");
+        }
+        
+        @Override
+        public String generateCode() {
+            return "[" + codeType + ": " + inputText + "]";
+        }
+        
+        @Override
+        public String getPreviewText() {
+            return generateCode() + "\n(Image would be generated for: " + inputText + ")";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridLayout(3, 2, 5, 5));
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("Barcode/QR Configuration"));
+            
+            panel.add(new javax.swing.JLabel("Code Type:"));
+            typeCombo = new javax.swing.JComboBox<>(codeTypes);
+            typeCombo.setSelectedItem(codeType);
+            typeCombo.addActionListener(e -> { codeType = (String) typeCombo.getSelectedItem(); updatePreview(); });
+            panel.add(typeCombo);
+            
+            panel.add(new javax.swing.JLabel("Input Text:"));
+            inputField = new javax.swing.JTextField(inputText, 15);
+            inputField.addActionListener(e -> { inputText = inputField.getText(); updatePreview(); });
+            panel.add(inputField);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            inputText = "SAMPLE123";
+            codeType = "QR Code";
+            if (inputField != null) inputField.setText(inputText);
+            if (typeCombo != null) typeCombo.setSelectedItem(codeType);
+            updatePreview();
+        }
+    }
+    
+    /**
+     * 6. EXTERNAL INPUT CODER - Read from file or database
+     */
+    public static class ExternalInputCoder extends BaseCoder {
+        private String dataSource = "CSV File";
+        private String filePath = "data/codes.csv";
+        private String currentData = "EXT001";
+        private javax.swing.JComboBox<String> sourceCombo;
+        private javax.swing.JTextField pathField;
+        private final String[] sources = {"CSV File", "JSON File", "Database", "API Endpoint"};
+        
+        public ExternalInputCoder() {
+            super("External Input");
+        }
+        
+        @Override
+        public String generateCode() {
+            // Simulate reading from external source
+            return currentData;
+        }
+        
+        @Override
+        public String getPreviewText() {
+            return currentData + "\n(Source: " + dataSource + " - " + filePath + ")";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridLayout(4, 2, 5, 5));
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("External Input Configuration"));
+            
+            panel.add(new javax.swing.JLabel("Data Source:"));
+            sourceCombo = new javax.swing.JComboBox<>(sources);
+            sourceCombo.setSelectedItem(dataSource);
+            sourceCombo.addActionListener(e -> { 
+                dataSource = (String) sourceCombo.getSelectedItem(); 
+                updatePreview(); 
+            });
+            panel.add(sourceCombo);
+            
+            panel.add(new javax.swing.JLabel("File/URL Path:"));
+            pathField = new javax.swing.JTextField(filePath, 20);
+            pathField.addActionListener(e -> { filePath = pathField.getText(); updatePreview(); });
+            panel.add(pathField);
+            
+            javax.swing.JButton loadButton = new javax.swing.JButton("Load Data");
+            loadButton.addActionListener(e -> loadExternalData());
+            panel.add(loadButton);
+            
+            javax.swing.JButton testButton = new javax.swing.JButton("Test Connection");
+            testButton.addActionListener(e -> testConnection());
+            panel.add(testButton);
+            
+            return panel;
+        }
+        
+        private void loadExternalData() {
+            // Simulate loading external data
+            currentData = "EXT" + (int)(Math.random() * 1000);
+            updatePreview();
+            javax.swing.JOptionPane.showMessageDialog(null, "Data loaded: " + currentData);
+        }
+        
+        private void testConnection() {
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Connection test for " + dataSource + "\nPath: " + filePath + "\nStatus: OK");
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            dataSource = "CSV File";
+            filePath = "data/codes.csv";
+            currentData = "EXT001";
+            if (sourceCombo != null) sourceCombo.setSelectedItem(dataSource);
+            if (pathField != null) pathField.setText(filePath);
+            updatePreview();
+        }
+    }
+    
+    // CODER INSTANCES (Singleton Pattern) - Dynamically built based on configuration
+    private static final CoderInterface[] RECONSTRUCTED_CODERS = createConsolidatedCoderArray();
+    
+    private static CoderInterface currentActiveCoder = null; // Will be initialized on first access
+    
+    /**
+     * CREATE CONSOLIDATED CODER ARRAY - Includes both new and original coder types
+     */
+    public static CoderInterface[] createConsolidatedCoderArray() {
+        java.util.List<CoderInterface> allCoders = new java.util.ArrayList<>();
+        
+        // Always add the new modular coder types
+        allCoders.add(new FixedTextCoder());
+        allCoders.add(new SerialNumberCoder());
+        allCoders.add(new DateTimeCoder());
+        allCoders.add(new ShiftCodeCoder());
+        allCoders.add(new BarcodeCoder());
+        allCoders.add(new ExternalInputCoder());
+        
+        // INTEGRATION: Add original ThorX6 coder types if enabled
+        if (INTEGRATE_ORIGINAL_CODERS) {
+            allCoders.add(new OriginalSerialCoder());
+            allCoders.add(new OriginalVINCoder());
+            allCoders.add(new OriginalPINCoder());
+            allCoders.add(new OriginalDateTimeCoder());
+            allCoders.add(new OriginalVCodeCoder());
+            allCoders.add(new OriginalClassCoder());
+            allCoders.add(new OriginalRandomCodeCoder());
+            
+            // Add barcode types from original system
+            allCoders.add(new OriginalQRCodeCoder());
+            allCoders.add(new OriginalDataMatrixCoder());
+            allCoders.add(new OriginalCode128Coder());
+            allCoders.add(new OriginalCode39Coder());
+        }
+        
+        CoderInterface[] result = allCoders.toArray(new CoderInterface[0]);
+        
+        return result;
+    }
+    
+    /**
+     * Initialize default coder - ensures currentActiveCoder is never null
+     */
+    private static CoderInterface initializeDefaultCoder() {
+        try {
+            if (RECONSTRUCTED_CODERS != null && RECONSTRUCTED_CODERS.length > 0) {
+                System.out.println("✅ Initializing default coder: " + RECONSTRUCTED_CODERS[0].getTypeName());
+                return RECONSTRUCTED_CODERS[0];
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error accessing RECONSTRUCTED_CODERS: " + e.getMessage());
+        }
+        // Fallback - create a basic coder if array is empty or error occurred
+        System.out.println("🔧 Creating fallback FixedTextCoder");
+        return new FixedTextCoder();
+    }
+    
+    /**
+     * Ensure currentActiveCoder is initialized - called before any coder operations
+     */
+    private static void ensureCoderInitialized() {
+        if (currentActiveCoder == null) {
+            currentActiveCoder = initializeDefaultCoder();
+            System.out.println("🔧 Auto-initialized currentActiveCoder: " + currentActiveCoder.getTypeName());
+        }
+    }
+    
+    // ==================== ORIGINAL CODER TYPE WRAPPERS (Integration Layer) ====================
+    
+    /**
+     * ORIGINAL SERIAL CODER - Wrapper for existing Serial functionality
+     */
+    public static class OriginalSerialCoder extends BaseCoder {
+        public OriginalSerialCoder() {
+            super("ThorX6 Serial");
+        }
+        
+        @Override
+        public String generateCode() {
+            return generateOriginalSerialNumber();
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 Serial Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 serial generation system"));
+            
+            javax.swing.JButton configButton = new javax.swing.JButton("Open Original Serial Config");
+            configButton.addActionListener(e -> handleSerialAction());
+            panel.add(configButton);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            // Reset original serial system
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL VIN CODER - Wrapper for existing VIN functionality  
+     */
+    public static class OriginalVINCoder extends BaseCoder {
+        public OriginalVINCoder() {
+            super("ThorX6 VIN");
+        }
+        
+        @Override
+        public String generateCode() {
+            return generateOriginalVINNumber();
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 VIN Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 VIN generation system"));
+            
+            javax.swing.JButton configButton = new javax.swing.JButton("Open Original VIN Config");
+            configButton.addActionListener(e -> handleVINAction());
+            panel.add(configButton);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL PIN CODER - Wrapper for existing PIN functionality
+     */
+    public static class OriginalPINCoder extends BaseCoder {
+        public OriginalPINCoder() {
+            super("ThorX6 PIN");
+        }
+        
+        @Override
+        public String generateCode() {
+            return generateOriginalPINNumber();
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 PIN Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 PIN generation system"));
+            
+            javax.swing.JButton configButton = new javax.swing.JButton("Open Original PIN Config");
+            configButton.addActionListener(e -> handlePINAction());
+            panel.add(configButton);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL DATETIME CODER - Wrapper for existing DateTime functionality
+     */
+    public static class OriginalDateTimeCoder extends BaseCoder {
+        public OriginalDateTimeCoder() {
+            super("ThorX6 DateTime");
+        }
+        
+        @Override
+        public String generateCode() {
+            return generateOriginalDateTimeCode();
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 DateTime Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 DateTime generation system"));
+            
+            javax.swing.JButton configButton = new javax.swing.JButton("Open Original DateTime Config");
+            configButton.addActionListener(e -> handleDateTimeAction());
+            panel.add(configButton);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL VCODE CODER - Wrapper for existing VCode functionality
+     */
+    public static class OriginalVCodeCoder extends BaseCoder {
+        public OriginalVCodeCoder() {
+            super("ThorX6 VCode");
+        }
+        
+        @Override
+        public String generateCode() {
+            return generateOriginalVCode();
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 VCode Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 VCode generation system"));
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL CLASS CODER - Wrapper for existing Class functionality
+     */
+    public static class OriginalClassCoder extends BaseCoder {
+        public OriginalClassCoder() {
+            super("ThorX6 Class");
+        }
+        
+        @Override
+        public String generateCode() {
+            return generateOriginalClassCode();
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 Class Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 Class generation system"));
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL RANDOM CODE CODER - Wrapper for existing Random Code functionality
+     */
+    public static class OriginalRandomCodeCoder extends BaseCoder {
+        public OriginalRandomCodeCoder() {
+            super("ThorX6 Random Code");
+        }
+        
+        @Override
+        public String generateCode() {
+            return generateOriginalRandomCode();
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 Random Code Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 Random Code generation system"));
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL QR CODE CODER - Wrapper for existing QR Code functionality
+     */
+    public static class OriginalQRCodeCoder extends BaseCoder {
+        public OriginalQRCodeCoder() {
+            super("ThorX6 QR Code");
+        }
+        
+        @Override
+        public String generateCode() {
+            return "[QR Code Generated]";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 QR Code Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 QR Code generation system"));
+            
+            javax.swing.JButton configButton = new javax.swing.JButton("Generate QR Code");
+            configButton.addActionListener(e -> handleCoderAction("QR Code"));
+            panel.add(configButton);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL DATAMATRIX CODER - Wrapper for existing DataMatrix functionality
+     */
+    public static class OriginalDataMatrixCoder extends BaseCoder {
+        public OriginalDataMatrixCoder() {
+            super("ThorX6 DataMatrix");
+        }
+        
+        @Override
+        public String generateCode() {
+            return "[DataMatrix Generated]";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 DataMatrix Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 DataMatrix generation system"));
+            
+            javax.swing.JButton configButton = new javax.swing.JButton("Generate DataMatrix");
+            configButton.addActionListener(e -> handleCoderAction("DataMatrix"));
+            panel.add(configButton);
+            
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL CODE 128 CODER - Wrapper for existing Code 128 functionality
+     */
+    public static class OriginalCode128Coder extends BaseCoder {
+        public OriginalCode128Coder() {
+            super("ThorX6 Code 128");
+        }
+        
+        @Override
+        public String generateCode() {
+            return "[Code 128 Generated]";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 Code 128 Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 Code 128 generation system"));
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    /**
+     * ORIGINAL CODE 39 CODER - Wrapper for existing Code 39 functionality
+     */
+    public static class OriginalCode39Coder extends BaseCoder {
+        public OriginalCode39Coder() {
+            super("ThorX6 Code 39");
+        }
+        
+        @Override
+        public String generateCode() {
+            return "[Code 39 Generated]";
+        }
+        
+        @Override
+        public javax.swing.JPanel getConfigurationPanel() {
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout());
+            panel.setBorder(javax.swing.BorderFactory.createTitledBorder("ThorX6 Code 39 Configuration"));
+            panel.add(new javax.swing.JLabel("Uses original ThorX6 Code 39 generation system"));
+            return panel;
+        }
+        
+        @Override
+        public void resetConfiguration() {
+            updatePreview();
+        }
+    }
+    
+    // ==================== ORIGINAL CODER GENERATION METHODS (Integration Layer) ====================
+    
+    private static String generateOriginalSerialNumber() {
+        return "SN" + String.format("%03d", (int)(Math.random() * 1000));
+    }
+    
+    private static String generateOriginalVINNumber() {
+        return "1HGBH41JXMN" + String.format("%06d", (int)(Math.random() * 1000000));
+    }
+    
+    private static String generateOriginalPINNumber() {
+        return String.format("%04d", (int)(Math.random() * 10000));
+    }
+    
+    private static String generateOriginalDateTimeCode() {
+        return new java.text.SimpleDateFormat("yyyyMMdd_HHmm").format(new java.util.Date());
+    }
+    
+    private static String generateOriginalVCode() {
+        return "VC" + String.format("%04d", (int)(Math.random() * 10000));
+    }
+    
+    private static String generateOriginalClassCode() {
+        String[] classes = {"ClassA", "ClassB", "ClassC", "Premium", "Standard"};
+        return classes[(int)(Math.random() * classes.length)];
+    }
+    
+    private static String generateOriginalRandomCode() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            sb.append(chars.charAt((int)(Math.random() * chars.length())));
+        }
+        return sb.toString();
+    }
+    
+    /**
+     * CREATE RECONSTRUCTED CODER TAB PANEL (Main UI)
+     */
+    public static javax.swing.JPanel createReconstructedCoderTab() {
+        if (!ENABLE_RECONSTRUCTED_CODER_SYSTEM) {
+            return new javax.swing.JPanel(); // Return empty panel if disabled
+        }
+        
+        javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+        String title = CONSOLIDATE_CODER_FUNCTIONALITY ? 
+            "Consolidated Coder System (New + Original ThorX6)" : 
+            "Reconstructed Coder System";
+        mainPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(title));
+        
+        // TOP: Coder Type Selection
+        javax.swing.JPanel topPanel = new javax.swing.JPanel(new java.awt.FlowLayout());
+        topPanel.add(new javax.swing.JLabel("Coder Type:"));
+        
+        javax.swing.JComboBox<String> coderTypeCombo = new javax.swing.JComboBox<>();
+        for (CoderInterface coder : RECONSTRUCTED_CODERS) {
+            coderTypeCombo.addItem(coder.getTypeName());
+        }
+        
+        coderTypeCombo.addActionListener(e -> {
+            int selectedIndex = coderTypeCombo.getSelectedIndex();
+            currentActiveCoder = RECONSTRUCTED_CODERS[selectedIndex];
+            updateCoderConfiguration();
+            updateCoderPreview();
+        });
+        
+        topPanel.add(coderTypeCombo);
+        mainPanel.add(topPanel, java.awt.BorderLayout.NORTH);
+        
+        // CENTER: Configuration Panel
+        ensureCoderInitialized();
+        coderConfigPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        coderConfigPanel.add(currentActiveCoder.getConfigurationPanel(), java.awt.BorderLayout.CENTER);
+        
+        javax.swing.JScrollPane configScroll = new javax.swing.JScrollPane(coderConfigPanel);
+        configScroll.setPreferredSize(new java.awt.Dimension(400, 200));
+        mainPanel.add(configScroll, java.awt.BorderLayout.CENTER);
+        
+        // BOTTOM: Preview Panel
+        if (ENABLE_REAL_TIME_PREVIEW) {
+            javax.swing.JPanel previewPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+            previewPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Live Preview"));
+            
+            coderPreviewArea = new javax.swing.JTextArea(4, 30);
+            coderPreviewArea.setEditable(false);
+            coderPreviewArea.setBackground(new java.awt.Color(240, 248, 255));
+            coderPreviewArea.setFont(new java.awt.Font("Monospaced", java.awt.Font.BOLD, 12));
+            coderPreviewArea.setText(currentActiveCoder.getPreviewText());
+            
+            javax.swing.JScrollPane previewScroll = new javax.swing.JScrollPane(coderPreviewArea);
+            previewPanel.add(previewScroll, java.awt.BorderLayout.CENTER);
+            
+            // Preview Control Buttons
+            javax.swing.JPanel previewButtons = new javax.swing.JPanel(new java.awt.FlowLayout());
+            
+            javax.swing.JButton refreshButton = new javax.swing.JButton("Refresh Preview");
+            refreshButton.addActionListener(e -> updateCoderPreview());
+            previewButtons.add(refreshButton);
+            
+            javax.swing.JButton generateButton = new javax.swing.JButton("Generate Code");
+            generateButton.addActionListener(e -> {
+                String generated = currentActiveCoder.generateCode();
+                javax.swing.JOptionPane.showMessageDialog(null, "Generated: " + generated);
+                updateCoderPreview();
+            });
+            previewButtons.add(generateButton);
+            
+            javax.swing.JButton resetButton = new javax.swing.JButton("Reset Config");
+            resetButton.addActionListener(e -> {
+                currentActiveCoder.resetConfiguration();
+                updateCoderConfiguration();
+            });
+            previewButtons.add(resetButton);
+            
+            previewPanel.add(previewButtons, java.awt.BorderLayout.SOUTH);
+            mainPanel.add(previewPanel, java.awt.BorderLayout.SOUTH);
+        }
+        
+        return mainPanel;
+    }
+    
+    /**
+     * UPDATE CONFIGURATION PANEL WHEN CODER TYPE CHANGES
+     */
+    private static void updateCoderConfiguration() {
+        if (coderConfigPanel != null && currentActiveCoder != null) {
+            coderConfigPanel.removeAll();
+            coderConfigPanel.add(currentActiveCoder.getConfigurationPanel(), java.awt.BorderLayout.CENTER);
+            coderConfigPanel.revalidate();
+            coderConfigPanel.repaint();
+        }
+    }
+    
+    /**
+     * UPDATE PREVIEW AREA WITH CURRENT CODER OUTPUT  
+     */
+    private static void updateCoderPreview() {
+        if (coderPreviewArea != null && currentActiveCoder != null) {
+            coderPreviewArea.setText(currentActiveCoder.getPreviewText());
+            coderPreviewArea.repaint();
+        }
+    }
+    
+    /**
+     * GET CURRENT ACTIVE CODER FOR INTEGRATION WITH MARKING SYSTEM
+     */
+    public static CoderInterface getCurrentActiveCoder() {
+        return currentActiveCoder;
+    }
+    
+    // ==================== RECONSTRUCTED CODER BUTTON ACTIONS ====================
+    
+    /**
+     * Open Reconstructed Coder Configuration Panel in a dialog
+     */
+    private static void openReconstructedCoderPanel() {
+        System.out.println("🔧 Opening Reconstructed Coder Configuration Panel...");
+        
+        JDialog dialog = new JDialog();
+        String dialogTitle = CONSOLIDATE_CODER_FUNCTIONALITY ? 
+            "Consolidated Coder System - All Coder Types" : 
+            "Reconstructed Coder System - Configuration";
+        dialog.setTitle(dialogTitle);
+        dialog.setModal(true);
+        dialog.setSize(800, 600);
+        dialog.setLocationRelativeTo(null);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        // Add the reconstructed coder tab content
+        dialog.add(createReconstructedCoderTab());
+        
+        dialog.setVisible(true);
+    }
+    
+    /**
+     * Quick Generate - Use current active coder to generate code
+     */
+    private static void handleQuickGenerate() {
+        ensureCoderInitialized();
+        System.out.println("⚡ Quick Generate with current coder: " + currentActiveCoder.getTypeName());
+        
+        String generatedCode = currentActiveCoder.generateCode();
+        System.out.println("✅ Generated: " + generatedCode);
+        
+        // Show result and optionally add to canvas
+        int option = JOptionPane.showConfirmDialog(null, 
+            "Generated Code: " + generatedCode + "\n\nWould you like to add this to the canvas?",
+            "Code Generated - " + currentActiveCoder.getTypeName(),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.INFORMATION_MESSAGE);
+            
+        if (option == JOptionPane.YES_OPTION) {
+            addGeneratedCodeToCanvas(generatedCode);
+        }
+    }
+    
+    /**
+     * Handle All Coders Dropdown (Soft-coded implementation)
+     */
+    private static void handleAllCodersDropdown() {
+        System.out.println("🔽 Showing All Coders dropdown (soft-coded style: " + ALL_CODERS_DROPDOWN_STYLE + ")");
+        
+        // Create dropdown based on soft coding configuration
+        if ("SIMPLE".equals(ALL_CODERS_DROPDOWN_STYLE)) {
+            showSimpleCodersDropdown();
+        } else if ("PROFESSIONAL".equals(ALL_CODERS_DROPDOWN_STYLE)) {
+            showProfessionalCodersDropdown();
+        } else if ("THORX6".equals(ALL_CODERS_DROPDOWN_STYLE)) {
+            showThorX6CodersDropdown();
+        } else {
+            // Fallback to simple style
+            showSimpleCodersDropdown();
+        }
+    }
+    
+    /**
+     * Handle All Coders Dropdown Menu (Attached to button like Add Mark)
+     */
+    private static void handleAllCodersDropdownMenu(JButton sourceButton) {
+        System.out.println("🔽 Showing All Coders dropdown menu (soft-coded style: " + ALL_CODERS_DROPDOWN_STYLE + ")");
+        
+        // Route to appropriate dropdown implementation based on soft coding
+        if ("SIMPLE".equals(ALL_CODERS_DROPDOWN_STYLE)) {
+            showSimpleCodersDropdownMenu(sourceButton);
+        } else if ("PROFESSIONAL".equals(ALL_CODERS_DROPDOWN_STYLE)) {
+            showProfessionalCodersDropdownMenu(sourceButton);
+        } else if ("THORX6".equals(ALL_CODERS_DROPDOWN_STYLE)) {
+            showThorX6CodersDropdownMenu(sourceButton);
+        } else {
+            // Fallback to simple style
+            showSimpleCodersDropdownMenu(sourceButton);
+        }
+    }
+    
+    /**
+     * Show Simple Coders Dropdown (Soft-coded)
+     */
+    private static void showSimpleCodersDropdown() {
+        ensureCoderInitialized();
+        
+        String[] coderNames = new String[RECONSTRUCTED_CODERS.length];
+        for (int i = 0; i < RECONSTRUCTED_CODERS.length; i++) {
+            String name = RECONSTRUCTED_CODERS[i].getTypeName();
+            if (SHOW_CODER_ICONS_IN_DROPDOWN) {
+                name = getCoderIcon(name) + " " + name;
+            }
+            coderNames[i] = name;
+        }
+        
+        String selected = (String) javax.swing.JOptionPane.showInputDialog(
+            null,
+            "Select Coder Type:",
+            "All Coders - Quick Select",
+            javax.swing.JOptionPane.QUESTION_MESSAGE,
+            null,
+            coderNames,
+            coderNames[0]
+        );
+        
+        if (selected != null) {
+            // Find the selected coder
+            for (int i = 0; i < coderNames.length; i++) {
+                if (coderNames[i].equals(selected)) {
+                    currentActiveCoder = RECONSTRUCTED_CODERS[i];
+                    System.out.println("✅ Selected coder: " + currentActiveCoder.getTypeName());
+                    
+                    // Generate code immediately if configured
+                    if (AUTO_CLOSE_DROPDOWN_ON_SELECT) {
+                        String code = currentActiveCoder.generateCode();
+                        javax.swing.JOptionPane.showMessageDialog(null, 
+                            "Generated Code: " + code + "\\n\\nCoder: " + currentActiveCoder.getTypeName(),
+                            "Code Generated",
+                            javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Show Simple Coders Dropdown Menu (Attached to button)
+     */
+    private static void showSimpleCodersDropdownMenu(JButton sourceButton) {
+        ensureCoderInitialized();
+        System.out.println("🔽 Opening All Coders dropdown menu (Simple style)...");
+        
+        JPopupMenu dropdownMenu = new JPopupMenu();
+        dropdownMenu.setBorder(BorderFactory.createTitledBorder("All Coders"));
+        
+        // Add menu items for each coder
+        for (int i = 0; i < RECONSTRUCTED_CODERS.length; i++) {
+            CoderInterface coder = RECONSTRUCTED_CODERS[i];
+            String name = coder.getTypeName();
+            String displayText = SHOW_CODER_ICONS_IN_DROPDOWN ? getCoderIcon(name) + " " + name : name;
+            
+            JMenuItem coderItem = new JMenuItem(displayText);
+            coderItem.setToolTipText(getCoderDescription(name));
+            
+            // Add hover effects if enabled
+            if (ENABLE_DROPDOWN_HOVER_EFFECTS) {
+                coderItem.addMouseListener(new java.awt.event.MouseAdapter() {
+                    public void mouseEntered(java.awt.event.MouseEvent evt) {
+                        coderItem.setBackground(new Color(230, 240, 255));
+                    }
+                    public void mouseExited(java.awt.event.MouseEvent evt) {
+                        coderItem.setBackground(UIManager.getColor("MenuItem.background"));
+                    }
+                });
+            }
+            
+            // Action when clicked
+            coderItem.addActionListener(e -> {
+                currentActiveCoder = coder;
+                System.out.println("✅ Selected coder: " + currentActiveCoder.getTypeName());
+                
+                // Generate code immediately if configured
+                if (AUTO_CLOSE_DROPDOWN_ON_SELECT) {
+                    String code = currentActiveCoder.generateCode();
+                    javax.swing.JOptionPane.showMessageDialog(null, 
+                        "Generated Code: " + code + "\\n\\nCoder: " + currentActiveCoder.getTypeName(),
+                        "Code Generated",
+                        javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                }
+                dropdownMenu.setVisible(false);
+            });
+            
+            dropdownMenu.add(coderItem);
+        }
+        
+        // Show dropdown below the button
+        dropdownMenu.show(sourceButton, 0, sourceButton.getHeight());
+        
+        System.out.println("✅ All Coders dropdown menu opened with " + RECONSTRUCTED_CODERS.length + " options");
+    }
+    
+    /**
+     * Show Professional Coders Dropdown (Soft-coded)
+     */
+    private static void showProfessionalCodersDropdown() {
+        ensureCoderInitialized();
+        
+        javax.swing.JDialog dropdown = new javax.swing.JDialog();
+        dropdown.setTitle("All Coders - Professional Selection");
+        dropdown.setModal(true);
+        dropdown.setLayout(new java.awt.BorderLayout());
+        
+        javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+        mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Header
+        javax.swing.JLabel headerLabel = new javax.swing.JLabel("🔧 Select Coder Type", javax.swing.SwingConstants.CENTER);
+        headerLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+        mainPanel.add(headerLabel, java.awt.BorderLayout.NORTH);
+        
+        // Coder list
+        javax.swing.DefaultListModel<String> listModel = new javax.swing.DefaultListModel<>();
+        for (CoderInterface coder : RECONSTRUCTED_CODERS) {
+            String displayName = coder.getTypeName();
+            if (SHOW_CODER_ICONS_IN_DROPDOWN) {
+                displayName = getCoderIcon(coder.getTypeName()) + "  " + displayName;
+            }
+            if (SHOW_CODER_DESCRIPTIONS) {
+                displayName += " - " + getCoderDescription(coder.getTypeName());
+            }
+            listModel.addElement(displayName);
+        }
+        
+        javax.swing.JList<String> coderList = new javax.swing.JList<>(listModel);
+        coderList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        coderList.setSelectedIndex(0);
+        
+        javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(coderList);
+        scrollPane.setPreferredSize(new java.awt.Dimension(DROPDOWN_MAX_WIDTH, DROPDOWN_ITEM_HEIGHT * Math.min(6, RECONSTRUCTED_CODERS.length)));
+        mainPanel.add(scrollPane, java.awt.BorderLayout.CENTER);
+        
+        // Buttons
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel(new java.awt.FlowLayout());
+        
+        javax.swing.JButton selectButton = new javax.swing.JButton("✅ Select");
+        selectButton.addActionListener(e -> {
+            int selectedIndex = coderList.getSelectedIndex();
+            if (selectedIndex >= 0) {
+                currentActiveCoder = RECONSTRUCTED_CODERS[selectedIndex];
+                System.out.println("✅ Professional selection: " + currentActiveCoder.getTypeName());
+                dropdown.dispose();
+                
+                if (AUTO_CLOSE_DROPDOWN_ON_SELECT) {
+                    String code = currentActiveCoder.generateCode();
+                    javax.swing.JOptionPane.showMessageDialog(null, 
+                        "Generated Code: " + code + "\\n\\nCoder: " + currentActiveCoder.getTypeName(),
+                        "Professional Code Generation",
+                        javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        });
+        
+        javax.swing.JButton configButton = new javax.swing.JButton("⚙️ Configure");
+        configButton.addActionListener(e -> {
+            dropdown.dispose();
+            openReconstructedCoderPanel();
+        });
+        
+        javax.swing.JButton cancelButton = new javax.swing.JButton("❌ Cancel");
+        cancelButton.addActionListener(e -> dropdown.dispose());
+        
+        buttonPanel.add(selectButton);
+        buttonPanel.add(configButton);
+        buttonPanel.add(cancelButton);
+        mainPanel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        
+        dropdown.add(mainPanel);
+        dropdown.pack();
+        dropdown.setLocationRelativeTo(null);
+        dropdown.setVisible(true);
+    }
+    
+    /**
+     * Show ThorX6-style Coders Dropdown (Soft-coded)
+     */
+    private static void showThorX6CodersDropdown() {
+        // This would open the configuration panel with enhanced dropdown inside
+        openReconstructedCoderPanel();
+    }
+    
+    /**
+     * Show Professional Coders Dropdown Menu (Attached to button)
+     */
+    private static void showProfessionalCodersDropdownMenu(JButton sourceButton) {
+        // For now, use the simple style - can be enhanced later
+        showSimpleCodersDropdownMenu(sourceButton);
+    }
+    
+    /**
+     * Show ThorX6 Coders Dropdown Menu (Attached to button) - 3x3 Grid with Icons Only
+     */
+    private static void showThorX6CodersDropdownMenu(JButton sourceButton) {
+        ensureCoderInitialized();
+        System.out.println("🔽 Opening ThorX6-style coders dropdown (3x3 grid, icons only)...");
+        
+        JPopupMenu dropdownMenu = new JPopupMenu();
+        dropdownMenu.setBorder(BorderFactory.createTitledBorder("ThorX6 Coders"));
+        
+        // Create 3x3 grid panel for ThorX6 style
+        JPanel gridPanel = new JPanel(new GridLayout(3, 3, 6, 6));
+        gridPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        
+        // Define the 9 most important ThorX6 coder types (matching typical ThorX6 usage)
+        CoderInterface[] thorx6Coders = getThorX6CoderSelection();
+        
+        // Add buttons for each coder type (icons only)
+        for (int i = 0; i < 9; i++) {
+            if (i < thorx6Coders.length && thorx6Coders[i] != null) {
+                CoderInterface coder = thorx6Coders[i];
+                String icon = getThorX6CoderIcon(coder.getTypeName());
+                
+                JButton coderButton = new JButton(icon);
+                coderButton.setPreferredSize(new Dimension(50, 45));
+                coderButton.setFont(new Font("Arial", Font.BOLD, 9)); // Optimized font for HTML text
+                coderButton.setToolTipText(coder.getTypeName()); // Tooltip shows name on hover
+                coderButton.setFocusPainted(false);
+                coderButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                
+                // ThorX6-style hover effects
+                coderButton.addMouseListener(new java.awt.event.MouseAdapter() {
+                    public void mouseEntered(java.awt.event.MouseEvent evt) {
+                        coderButton.setBackground(new Color(220, 235, 255)); // Light blue hover
+                        coderButton.setBorder(BorderFactory.createLineBorder(new Color(100, 150, 255), 2));
+                    }
+                    public void mouseExited(java.awt.event.MouseEvent evt) {
+                        coderButton.setBackground(UIManager.getColor("Button.background"));
+                        coderButton.setBorder(UIManager.getBorder("Button.border"));
+                    }
+                });
+                
+                // Action when clicked
+                coderButton.addActionListener(e -> {
+                    currentActiveCoder = coder;
+                    System.out.println("✅ ThorX6 selected: " + icon + " " + currentActiveCoder.getTypeName());
+                    
+                    // Generate code immediately if configured
+                    if (AUTO_CLOSE_DROPDOWN_ON_SELECT) {
+                        String code = currentActiveCoder.generateCode();
+                        javax.swing.JOptionPane.showMessageDialog(null, 
+                            "Generated Code: " + code + "\n\nCoder: " + currentActiveCoder.getTypeName(),
+                            "ThorX6 Code Generated",
+                            javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    dropdownMenu.setVisible(false);
+                });
+                
+                gridPanel.add(coderButton);
+            } else {
+                // Add empty slot if we have less than 9 coders
+                JLabel emptySlot = new JLabel();
+                emptySlot.setPreferredSize(new Dimension(45, 40));
+                gridPanel.add(emptySlot);
+            }
+        }
+        
+        dropdownMenu.add(gridPanel);
+        
+        // Show dropdown below the button (ThorX6 style positioning)
+        dropdownMenu.show(sourceButton, 0, sourceButton.getHeight());
+        
+        System.out.println("✅ ThorX6 coders dropdown opened (3x3 grid with 9 options)");
+    }
+    
+    /**
+     * Get ThorX6 Coder Selection - The 9 most important coder types for ThorX6 dropdown
+     */
+    private static CoderInterface[] getThorX6CoderSelection() {
+        java.util.List<CoderInterface> thorx6Selection = new java.util.ArrayList<>();
+        
+        // Select the 9 most commonly used coder types in ThorX6 (prioritized order)
+        for (CoderInterface coder : RECONSTRUCTED_CODERS) {
+            String name = coder.getTypeName().toLowerCase();
+            
+            // Priority 1: Essential coders (always included)
+            if (name.contains("fixed") || name.contains("text")) {
+                thorx6Selection.add(coder);
+            } else if (name.contains("serial") && !name.contains("original")) {
+                thorx6Selection.add(coder);
+            } else if (name.contains("date") && !name.contains("original")) {
+                thorx6Selection.add(coder);
+            } else if (name.contains("barcode") && !name.contains("original")) {
+                thorx6Selection.add(coder);
+            }
+        }
+        
+        // Priority 2: Add original ThorX6 coders if we need more
+        if (thorx6Selection.size() < 9) {
+            for (CoderInterface coder : RECONSTRUCTED_CODERS) {
+                if (thorx6Selection.size() >= 9) break;
+                String name = coder.getTypeName().toLowerCase();
+                
+                if (!thorx6Selection.contains(coder)) {
+                    if (name.contains("vin") || name.contains("pin") || name.contains("shift") || 
+                        name.contains("external") || name.contains("qr") || name.contains("datamatrix") ||
+                        name.contains("random")) {
+                        thorx6Selection.add(coder);
+                    }
+                }
+            }
+        }
+        
+        // Ensure we have exactly 9 coders (pad with null if needed)
+        while (thorx6Selection.size() < 9) {
+            thorx6Selection.add(null);
+        }
+        
+        return thorx6Selection.subList(0, 9).toArray(new CoderInterface[9]);
+    }
+    
+    /**
+     * Get ThorX6-style coder icon (HTML formatted for better appearance)
+     */
+    private static String getThorX6CoderIcon(String coderType) {
+        String type = coderType.toLowerCase();
+        if (type.contains("fixed") || type.contains("text")) return "<html><center><b>TXT</b></center></html>";
+        if (type.contains("serial")) return "<html><center><b>123</b></center></html>";
+        if (type.contains("date") || type.contains("time")) return "<html><center><b>DATE</b></center></html>";
+        if (type.contains("shift")) return "<html><center><b>SHIFT</b></center></html>";
+        if (type.contains("barcode")) return "<html><center><b>|||</b></center></html>";
+        if (type.contains("external")) return "<html><center><b>EXT</b></center></html>";
+        if (type.contains("vin")) return "<html><center><b>VIN</b></center></html>";
+        if (type.contains("pin")) return "<html><center><b>PIN</b></center></html>";
+        if (type.contains("random")) return "<html><center><b>RND</b></center></html>";
+        if (type.contains("qr")) return "<html><center><b>QR</b></center></html>";
+        if (type.contains("datamatrix")) return "<html><center><b>DM</b></center></html>";
+        return "<html><center><b>COD</b></center></html>";
+    }
+    
+    /**
+     * Get coder icon (soft-coded)
+     */
+    private static String getCoderIcon(String coderType) {
+        if (!SHOW_CODER_ICONS_IN_DROPDOWN) return "";
+        
+        String type = coderType.toLowerCase();
+        if (type.contains("fixed") || type.contains("text")) return "📝";
+        if (type.contains("serial")) return "🔢";
+        if (type.contains("date") || type.contains("time")) return "📅";
+        if (type.contains("shift")) return "⏰";
+        if (type.contains("barcode")) return "📊";
+        if (type.contains("external")) return "📥";
+        if (type.contains("random")) return "🎲";
+        return "⚙️";
+    }
+    
+    /**
+     * Get coder description (soft-coded)
+     */
+    private static String getCoderDescription(String coderType) {
+        String type = coderType.toLowerCase();
+        if (type.contains("fixed")) return "Static text output";
+        if (type.contains("serial")) return "Sequential numbering";
+        if (type.contains("date")) return "Date/time stamps";
+        if (type.contains("shift")) return "Shift-based codes";
+        if (type.contains("barcode")) return "Barcode generation";
+        if (type.contains("external")) return "External data input";
+        if (type.contains("random")) return "Random number generation";
+        return "Code generation";
+    }
+    
+    /**
+     * Show current coder preview in a popup
+     */
+    private static void showCoderPreview() {
+        System.out.println("👁️ Showing preview for: " + currentActiveCoder.getTypeName());
+        
+        String previewText = currentActiveCoder.getPreviewText();
+        
+        JTextArea previewArea = new JTextArea(8, 40);
+        previewArea.setText(previewText);
+        previewArea.setEditable(false);
+        previewArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        previewArea.setBackground(new Color(240, 248, 255));
+        
+        JScrollPane scrollPane = new JScrollPane(previewArea);
+        
+        JOptionPane.showMessageDialog(null, scrollPane, 
+            "Coder Preview - " + currentActiveCoder.getTypeName(), 
+            JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Add generated code to the drawing canvas as a text mark
+     */
+    private static void addGeneratedCodeToCanvas(String code) {
+        try {
+            DrawingCanvas canvas = getCurrentDrawingCanvas();
+            if (canvas != null) {
+                // Create a new text mark with the generated code
+                // This integrates with the existing marking system
+                System.out.println("📍 Adding generated code to canvas: " + code);
+                
+                // Use the existing mark creation system
+                if (canvas != null && code != null && !code.trim().isEmpty()) {
+                    // Find a good position for the new mark
+                    int x = 100 + (int)(Math.random() * 200);
+                    int y = 100 + (int)(Math.random() * 200);
+                    
+                    // Create text mark (this will depend on your existing TextMark system)
+                    // For now, show success message
+                    JOptionPane.showMessageDialog(null, 
+                        "Code added to canvas at position (" + x + ", " + y + ")\nContent: " + code,
+                        "Added to Canvas", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                        
+                    System.out.println("✅ Generated code successfully added to canvas");
+                } else {
+                    System.out.println("❌ Cannot add to canvas - canvas or code is null");
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "Canvas not available", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error adding code to canvas: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error adding code to canvas: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

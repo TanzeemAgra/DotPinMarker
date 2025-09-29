@@ -36,6 +36,14 @@ public class LineMark extends Mark {
     
     @Override
     public void resizeTo(int mx, int my) {
+        // Check lock size flag before allowing resize
+        if (lockSize && RugrelDropdownConfig.ENABLE_LOCK_SIZE_FUNCTIONALITY) {
+            if (RugrelDropdownConfig.SHOW_SIZE_LOCK_FEEDBACK) {
+                System.out.println("LineMark resizeTo blocked: Size is locked");
+            }
+            return;
+        }
+        
         if (resizing) {
             endX = mx;
             endY = my;
